@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Users, User, Play, Check, ChevronRight, ChevronLeft, Volume2, FileAudio, Sparkles, BookOpen, Brain, Mic } from 'lucide-react';
+import { Upload, Users, User, Play, Pause, Check, ChevronRight, ChevronLeft, Volume2, FileAudio, Sparkles, BookOpen, Brain, Mic } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 
 // All internal steps (0-8)
@@ -22,8 +22,8 @@ const USER_STEPS = ALL_STEPS
   .filter(s => s.userStep);
 
 const mockSpeakers = [
-  { id: 's1', name: 'Speaker 1', pct: 62, preview: 'Welcome everyone to today\'s episode...' },
-  { id: 's2', name: 'Speaker 2', pct: 38, preview: 'Thanks for having me here today...' },
+  { id: 's1', name: 'Speaker 1', pct: 62, preview: 'Welcome everyone to today\'s episode...', duration: '0:12' },
+  { id: 's2', name: 'Speaker 2', pct: 38, preview: 'Thanks for having me here today...', duration: '0:08' },
 ];
 
 export default function NewPodcastPage() {
@@ -34,6 +34,20 @@ export default function NewPodcastPage() {
   const [refCount, setRefCount] = useState(2);
   const [host, setHost] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const playTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handlePlay = (speakerId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (playingId === speakerId) {
+      setPlayingId(null);
+      if (playTimerRef.current) clearTimeout(playTimerRef.current);
+      return;
+    }
+    setPlayingId(speakerId);
+    // Mock: stop after 3s
+    playTimerRef.current = setTimeout(() => setPlayingId(null), 3000);
+  };
 
   // Auto-advance through AI steps
   useEffect(() => {
@@ -203,11 +217,43 @@ export default function NewPodcastPage() {
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold text-foreground">{s.name}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="font-semibold text-foreground">{s.name}</span>
+                    <span className="text-[11px] text-muted-foreground">{s.pct}%</span>
+                  </div>
                   {host === s.id && <div className="h-5 w-5 rounded-full bg-accent flex items-center justify-center"><Check className="h-3 w-3 text-accent-foreground" /></div>}
                 </div>
-                <p className="text-xs text-muted-foreground">"{s.preview}"</p>
-                <p className="text-xs text-muted-foreground mt-1">{s.pct}% of audio</p>
+                <p className="text-xs text-muted-foreground mb-3">"{s.preview}"</p>
+                <div className="flex items-center gap-2">
+                  <div
+                    onClick={(e) => handlePlay(s.id, e)}
+                    className={`h-8 w-8 rounded-full flex items-center justify-center transition-colors ${
+                      playingId === s.id
+                        ? 'bg-accent text-accent-foreground'
+                        : 'bg-secondary text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {playingId === s.id ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 ml-0.5" />}
+                  </div>
+                  {playingId === s.id && (
+                    <div className="flex items-center gap-[2px] h-4">
+                      {[...Array(12)].map((_, i) => (
+                        <div
+                          key={i}
+                          className="w-[3px] rounded-full bg-accent animate-pulse"
+                          style={{
+                            height: `${Math.random() * 12 + 4}px`,
+                            animationDelay: `${i * 80}ms`,
+                            animationDuration: '0.6s',
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  {playingId !== s.id && (
+                    <span className="text-[11px] text-muted-foreground">{t('wizard.host.preview')} · {s.duration}</span>
+                  )}
+                </div>
               </button>
             ))}
           </div>
