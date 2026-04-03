@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { Play, Pause, ExternalLink, ChevronDown } from 'lucide-react';
+import { Play, Pause, ChevronDown } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 
 const emotions: Record<string, string> = {
@@ -128,9 +128,6 @@ export default function SummaryPage() {
                   </span>
                 </div>
                 <p className="text-[13px] text-foreground/80 leading-relaxed">{seg.text}</p>
-                <span className="inline-flex items-center gap-1 text-[10px] text-accent mt-2 hover:underline">
-                  <ExternalLink className="h-2.5 w-2.5" /> {t('summary.jumpToOriginal')}
-                </span>
               </button>
             ))}
           </div>
