@@ -41,11 +41,10 @@ export default function SummaryButton({ podcastId, className = '' }: SummaryButt
         {t('home.summary')}
       </button>
       {open && (
-        <div className="absolute top-full mt-1 right-0 bg-card border border-border rounded-xl py-1 shadow-lg z-20 animate-scale-in min-w-[90px]">
-          <p className="px-3 py-1 text-[10px] text-muted-foreground">{t('summary.selectDuration')}</p>
+        <div className="absolute top-full mt-1 right-0 bg-card border border-border rounded-2xl p-1.5 shadow-lg z-20 animate-scale-in min-w-[100px]">
           {durations.map(d => (
             <button key={d} onClick={e => pick(d, e)}
-              className="block w-full px-3 py-1.5 text-xs text-left text-foreground hover:bg-secondary transition-colors">
+              className="block w-full px-3 py-1.5 text-xs text-center font-medium rounded-full transition-colors text-foreground hover:bg-secondary">
               {t('summary.min', { n: d })}
             </button>
           ))}

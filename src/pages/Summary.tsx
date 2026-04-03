@@ -84,17 +84,17 @@ export default function SummaryPage() {
         <div className="relative">
           <button
             onClick={() => setShowDurMenu(!showDurMenu)}
-            className="h-8 px-3 rounded-lg bg-accent text-accent-foreground text-xs font-semibold hover:opacity-90 transition-all shadow-sm inline-flex items-center gap-1.5"
+            className="h-8 px-4 rounded-full bg-accent text-accent-foreground text-xs font-semibold hover:opacity-90 transition-all shadow-sm inline-flex items-center gap-1.5"
           >
             {dur ? t('summary.min', { n: dur.toString() }) : t('summary.selectDuration')}
             <ChevronDown className="h-3 w-3" />
           </button>
           {showDurMenu && (
-            <div className="absolute top-full mt-1 right-0 bg-card border border-border rounded-xl p-1 shadow-lg min-w-[100px] z-10">
+            <div className="absolute top-full mt-1 right-0 bg-card border border-border rounded-2xl p-1.5 shadow-lg min-w-[100px] z-10 animate-scale-in">
               {[1, 3, 5, 10].map(d => (
                 <button key={d} onClick={() => handleSelectDuration(d)}
-                  className={`block w-full px-3 py-1.5 text-xs rounded-lg text-left transition-colors ${
-                    dur === d ? 'bg-accent text-accent-foreground font-medium' : 'text-foreground hover:bg-secondary'
+                  className={`block w-full px-3 py-1.5 text-xs text-center font-medium rounded-full transition-colors ${
+                    dur === d ? 'bg-accent text-accent-foreground' : 'text-foreground hover:bg-secondary'
                   }`}>{t('summary.min', { n: d.toString() })}</button>
               ))}
             </div>

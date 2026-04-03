@@ -212,15 +212,15 @@ export default function ListenPage() {
               {/* Speed selector */}
               <div className="relative" ref={speedRef}>
                 <button onClick={() => setShowSpeed(!showSpeed)}
-                  className="h-7 px-2.5 rounded-lg bg-secondary text-xs font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                  className="h-7 px-3 rounded-full bg-accent text-accent-foreground text-xs font-medium hover:opacity-90 transition-all flex items-center gap-1"
                 >
                   {speed}x <ChevronDown className="h-3 w-3" />
                 </button>
                 {showSpeed && (
-                  <div className="absolute bottom-full mb-2 right-0 bg-card border border-border rounded-xl py-1 shadow-lg min-w-[56px] animate-scale-in">
+                  <div className="absolute bottom-full mb-2 right-0 bg-card border border-border rounded-2xl p-1.5 shadow-lg min-w-[72px] animate-scale-in">
                     {speeds.map(s => (
                       <button key={s} onClick={() => { setSpeed(s); setShowSpeed(false); }}
-                        className={`w-full px-3 py-1.5 text-xs text-center font-medium transition-colors ${
+                        className={`w-full px-3 py-1.5 text-xs text-center font-medium rounded-full transition-colors ${
                           speed === s ? 'bg-accent text-accent-foreground' : 'text-foreground hover:bg-secondary'
                         }`}>{s}x</button>
                     ))}
