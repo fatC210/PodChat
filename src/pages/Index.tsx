@@ -116,13 +116,6 @@ export default function Index() {
                     </Link>
                   )}
 
-                  <span className={`text-[11px] font-medium px-2 py-0.5 rounded-md ${
-                    podcast.status === 'ready'
-                      ? 'bg-success/10 text-success'
-                      : 'bg-accent/10 text-accent'
-                  }`}>
-                    {podcast.status === 'ready' ? t('home.status.ready') : t('home.status.configuring')}
-                  </span>
 
                   <button
                     onClick={(e) => handleDelete(podcast.id, e)}
