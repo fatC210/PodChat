@@ -1,6 +1,7 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Clock, User, Radio, Zap, Trash2 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
+import SummaryButton from '@/components/SummaryButton';
 import { useState } from 'react';
 
 const initialPodcasts = [
