@@ -51,6 +51,16 @@ export default function SummaryPage() {
   const [progress, setProgress] = useState(0);
   const [active, setActive] = useState<string | null>(null);
   const [showDurMenu, setShowDurMenu] = useState(false);
+  const durRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showDurMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (durRef.current && !durRef.current.contains(e.target as Node)) setShowDurMenu(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showDurMenu]);
 
   // Auto-start from URL param
   useEffect(() => {
