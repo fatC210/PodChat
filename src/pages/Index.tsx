@@ -28,30 +28,22 @@ export default function Index() {
 
   return (
     <div className="max-w-screen-lg mx-auto px-4 sm:px-6 py-10">
-      {/* Hero */}
-      <div className="mb-12">
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground leading-[1.1]">
-          {t('home.title')}
-        </h1>
-        <p className="text-muted-foreground mt-2 text-[15px]">{t('app.tagline')}</p>
-      </div>
-
-      {/* New Podcast CTA */}
-      <Link
-        to="/podcast/new"
-        className="group flex items-center justify-between p-5 rounded-2xl border border-dashed border-border hover:border-accent/40 hover:bg-accent/5 transition-all duration-300 mb-8"
-      >
-        <div className="flex items-center gap-4">
-          <div className="h-10 w-10 rounded-xl bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
-            <Plus className="h-5 w-5 text-accent" />
-          </div>
-          <div>
-            <p className="font-semibold text-foreground text-[15px]">{t('home.newPodcast')}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{t('home.emptyDesc')}</p>
-          </div>
+      {/* Hero + New button */}
+      <div className="flex items-start justify-between mb-10">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground leading-[1.1]">
+            {t('home.title')}
+          </h1>
+          <p className="text-muted-foreground mt-2 text-[15px]">{t('app.tagline')}</p>
         </div>
-        <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-accent group-hover:translate-x-1 transition-all" />
-      </Link>
+        <Link
+          to="/podcast/new"
+          className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:opacity-90 transition-opacity shrink-0"
+        >
+          <Plus className="h-4 w-4" />
+          {t('home.newPodcast')}
+        </Link>
+      </div>
 
       {/* Podcast list */}
       <div className="space-y-4">
