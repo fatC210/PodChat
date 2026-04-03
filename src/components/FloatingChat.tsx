@@ -55,6 +55,11 @@ export default function FloatingChat({ open, onClose }: FloatingChatProps) {
   const [waiting, setWaiting] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const endRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open) setTimeout(() => inputRef.current?.focus(), 100);
+  }, [open]);
 
   // Call timer
   useEffect(() => {
@@ -185,6 +190,8 @@ export default function FloatingChat({ open, onClose }: FloatingChatProps) {
       <div className="px-3 py-2.5 border-t border-border shrink-0">
         <div className="flex items-center gap-2">
           <input
+            ref={inputRef}
+            autoFocus
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && send()}
