@@ -48,8 +48,52 @@ export default function ListenPage() {
   const [showTranscriptMenu, setShowTranscriptMenu] = useState(false);
   const [targetLang, setTargetLang] = useState('zh');
   const [showLangMenu, setShowLangMenu] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
   const progressRef = useRef<HTMLDivElement>(null);
   const speedRef = useRef<HTMLDivElement>(null);
+
+  const timeToSeconds = (t: string) => {
+    const parts = t.split(':').map(Number);
+    return parts.length === 3 ? parts[0] * 3600 + parts[1] * 60 + parts[2] : parts[0] * 60 + parts[1];
+  };
+
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const fmtSrt = (s: number) => `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)},000`;
+  const fmtVtt = (s: number) => `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}.000`;
+
+  const downloadFile = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportTxt = () => {
+    const content = transcript.map(l => `[${l.time}] ${l.speaker}: ${l.text}`).join('\n\n');
+    downloadFile(content, 'transcript.txt');
+    setShowExportMenu(false);
+  };
+
+  const exportSrt = () => {
+    const content = transcript.map((l, i) => {
+      const start = timeToSeconds(l.time);
+      const end = i < transcript.length - 1 ? timeToSeconds(transcript[i + 1].time) : start + 10;
+      return `${i + 1}\n${fmtSrt(start)} --> ${fmtSrt(end)}\n${l.speaker}: ${l.text}`;
+    }).join('\n\n');
+    downloadFile(content, 'transcript.srt');
+    setShowExportMenu(false);
+  };
+
+  const exportVtt = () => {
+    const lines = transcript.map((l, i) => {
+      const start = timeToSeconds(l.time);
+      const end = i < transcript.length - 1 ? timeToSeconds(transcript[i + 1].time) : start + 10;
+      return `${fmtVtt(start)} --> ${fmtVtt(end)}\n${l.speaker}: ${l.text}`;
+    }).join('\n\n');
+    downloadFile(`WEBVTT\n\n${lines}`, 'transcript.vtt');
+    setShowExportMenu(false);
+  };
 
   useEffect(() => {
     if (!showSpeed) return;
