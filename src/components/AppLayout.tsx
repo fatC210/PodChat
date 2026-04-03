@@ -8,11 +8,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { t, lang, setLang } = useI18n();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
+  const nav = useNavigate();
   const isHome = location.pathname === '/';
 
-  // Determine back link: summary/settings pages go back to listen page
-  const podcastMatch = location.pathname.match(/^\/podcast\/([^/]+)\/(summary|settings)$/);
-  const backTo = podcastMatch ? `/podcast/${podcastMatch[1]}/listen` : '/';
+  const goBack = () => nav(-1);
 
   return (
     <div className="min-h-screen bg-background">
