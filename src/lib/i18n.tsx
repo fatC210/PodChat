@@ -127,6 +127,7 @@ const translations = {
     'chat.endChat': 'End Chat',
     'chat.greeting': 'You were just listening to the part about {topic}. What would you like to ask?',
     'chat.newSession': 'New Session',
+    'chat.live': 'Live',
 
     // Summary Mode
     'summary.title': 'Quick Summary',
@@ -288,6 +289,7 @@ const translations = {
     'chat.endChat': '结束对话',
     'chat.greeting': '你刚听到我在聊 {topic}，有什么想问的吗？',
     'chat.newSession': '新会话',
+    'chat.live': '通话中',
 
     // Summary Mode
     'summary.title': '速览模式',
