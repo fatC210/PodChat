@@ -192,6 +192,7 @@ export default function FloatingChat({ open, onClose }: FloatingChatProps) {
           </button>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
