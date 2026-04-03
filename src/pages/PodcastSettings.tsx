@@ -1,104 +1,82 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Trash2, MessageCircle, Send } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { Trash2, Send } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 
 export default function PodcastSettingsPage() {
   const { t } = useI18n();
   const { id } = useParams();
-  const [testQuestion, setTestQuestion] = useState('');
-  const [testResponse, setTestResponse] = useState('');
+  const [q, setQ] = useState('');
+  const [resp, setResp] = useState('');
 
-  const handlePreview = () => {
-    if (!testQuestion.trim()) return;
-    setTestResponse("That's a great question! Based on what we discussed in the episode, AI creativity operates through pattern recognition at massive scale. It's not 'true' creativity in the philosophical sense, but the output can be genuinely novel and useful. The key insight from Dr. Kim's research is that emotional resonance doesn't depend on the creator's consciousness.");
+  const preview = () => {
+    if (!q.trim()) return;
+    setResp("That's a great question! Based on our episode, AI creativity operates through pattern recognition at massive scale. The key insight from Dr. Kim is that emotional resonance doesn't depend on the creator's consciousness.");
   };
 
   return (
-    <div className="container py-8 max-w-2xl">
-      <div className="flex items-center gap-3 mb-8">
-        <Link to={`/podcast/${id}/listen`} className="h-8 w-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-surface transition-colors">
-          <ArrowLeft className="h-4 w-4" />
-        </Link>
-        <h1 className="font-display text-2xl font-bold text-foreground">{t('podSettings.title')}</h1>
-      </div>
+    <div className="max-w-lg mx-auto px-4 sm:px-6 py-10">
+      <h1 className="text-2xl font-bold text-foreground mb-8">{t('podSettings.title')}</h1>
 
       <div className="space-y-6">
         {/* Persona */}
-        <div className="bg-card border border-border rounded-xl p-5">
-          <h3 className="font-display font-semibold text-foreground mb-4">{t('podSettings.persona')}</h3>
-          <div className="space-y-4">
+        <section>
+          <h3 className="text-sm font-semibold text-foreground mb-3">{t('podSettings.persona')}</h3>
+          <div className="space-y-3">
             {[
-              { label: t('podSettings.personality'), value: 'Enthusiastic, analytical, uses analogies frequently' },
-              { label: t('podSettings.catchphrases'), value: '"That\'s a great point", "Let me break this down", "Here\'s the thing..."' },
-              { label: t('podSettings.answerStyle'), value: 'Starts with a hook, provides examples, then summarizes' },
-              { label: t('podSettings.languagePref'), value: 'English with occasional technical jargon' },
-            ].map(field => (
-              <div key={field.label}>
-                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">{field.label}</label>
-                <textarea
-                  defaultValue={field.value}
-                  rows={2}
-                  className="w-full px-3 py-2 rounded-md bg-surface border border-border text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
-                />
+              { l: t('podSettings.personality'), v: 'Enthusiastic, analytical, uses analogies frequently' },
+              { l: t('podSettings.catchphrases'), v: '"That\'s a great point", "Let me break this down"' },
+              { l: t('podSettings.answerStyle'), v: 'Starts with a hook, provides examples, then summarizes' },
+              { l: t('podSettings.languagePref'), v: 'English with occasional technical jargon' },
+            ].map(f => (
+              <div key={f.l}>
+                <label className="text-xs text-muted-foreground mb-1 block">{f.l}</label>
+                <textarea defaultValue={f.v} rows={2}
+                  className="w-full px-3 py-2 rounded-lg bg-secondary text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent resize-none" />
               </div>
             ))}
           </div>
-        </div>
+        </section>
 
-        {/* Knowledge Base Stats */}
-        <div className="bg-card border border-border rounded-xl p-5">
-          <h3 className="font-display font-semibold text-foreground mb-4">{t('podSettings.knowledgeBase')}</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-4 rounded-xl bg-surface text-center">
-              <p className="font-display text-2xl font-bold text-primary">24</p>
-              <p className="text-xs text-muted-foreground mt-1">{t('podSettings.scriptChunks')}</p>
+        {/* Knowledge */}
+        <section>
+          <h3 className="text-sm font-semibold text-foreground mb-3">{t('podSettings.knowledgeBase')}</h3>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="p-4 rounded-xl bg-card border border-border text-center">
+              <p className="text-2xl font-bold text-accent">24</p>
+              <p className="text-[11px] text-muted-foreground">{t('podSettings.scriptChunks')}</p>
             </div>
-            <div className="p-4 rounded-xl bg-surface text-center">
-              <p className="font-display text-2xl font-bold text-primary">8</p>
-              <p className="text-xs text-muted-foreground mt-1">{t('podSettings.crawledPages')}</p>
+            <div className="p-4 rounded-xl bg-card border border-border text-center">
+              <p className="text-2xl font-bold text-accent">8</p>
+              <p className="text-[11px] text-muted-foreground">{t('podSettings.crawledPages')}</p>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Preview Chat */}
-        <div className="bg-card border border-border rounded-xl p-5">
-          <h3 className="font-display font-semibold text-foreground mb-4">{t('podSettings.previewChat')}</h3>
-          <div className="space-y-3">
-            <div className="flex gap-2">
-              <input
-                value={testQuestion}
-                onChange={e => setTestQuestion(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handlePreview()}
-                placeholder="Ask a test question..."
-                className="flex-1 h-9 px-3 rounded-md bg-surface border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-              <button
-                onClick={handlePreview}
-                className="h-9 w-9 rounded-md bg-primary text-primary-foreground flex items-center justify-center hover:opacity-90 transition-opacity"
-              >
-                <Send className="h-3.5 w-3.5" />
-              </button>
-            </div>
-            {testResponse && (
-              <div className="p-3 rounded-lg bg-surface text-sm text-foreground leading-relaxed animate-fade-in">
-                {testResponse}
-              </div>
-            )}
+        {/* Preview */}
+        <section>
+          <h3 className="text-sm font-semibold text-foreground mb-3">{t('podSettings.previewChat')}</h3>
+          <div className="flex gap-2">
+            <input value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => e.key === 'Enter' && preview()}
+              placeholder="Ask a test question..."
+              className="flex-1 h-9 px-3 rounded-lg bg-secondary text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-accent" />
+            <button onClick={preview}
+              className="h-9 w-9 rounded-lg bg-foreground text-background flex items-center justify-center hover:opacity-90 transition-opacity">
+              <Send className="h-3.5 w-3.5" />
+            </button>
           </div>
-        </div>
+          {resp && <div className="mt-2 p-3 rounded-xl bg-card border border-border text-[13px] text-foreground leading-relaxed animate-fade-in">{resp}</div>}
+        </section>
 
-        {/* Danger Zone */}
-        <div className="bg-card border border-destructive/30 rounded-xl p-5">
-          <h3 className="font-display font-semibold text-destructive mb-2">{t('podSettings.dangerZone')}</h3>
-          <p className="text-xs text-muted-foreground mb-3">This action is irreversible. All data for this podcast will be permanently deleted.</p>
-          <button className="inline-flex items-center gap-1.5 h-9 px-4 rounded-md bg-destructive text-destructive-foreground text-sm font-medium hover:opacity-90 transition-opacity">
-            <Trash2 className="h-3.5 w-3.5" />
-            {t('podSettings.deletePodcast')}
+        {/* Danger */}
+        <section className="pt-4 border-t border-border">
+          <h3 className="text-sm font-semibold text-destructive mb-2">{t('podSettings.dangerZone')}</h3>
+          <button className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-destructive/10 text-destructive text-xs font-medium hover:bg-destructive/20 transition-colors">
+            <Trash2 className="h-3 w-3" /> {t('podSettings.deletePodcast')}
           </button>
-        </div>
+        </section>
 
-        <button className="w-full h-10 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:opacity-90 transition-opacity">
+        <button className="w-full h-10 rounded-lg bg-foreground text-background font-medium text-sm hover:opacity-90 transition-opacity">
           {t('common.save')}
         </button>
       </div>

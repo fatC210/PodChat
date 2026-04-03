@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Settings, Home, Sun, Moon, Globe } from 'lucide-react';
+import { Settings, ChevronLeft, Globe, Sun, Moon } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme';
 
@@ -7,56 +7,51 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { t, lang, setLang } = useI18n();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
-
   const isHome = location.pathname === '/';
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 glass border-b border-border/50">
-        <div className="container flex h-14 items-center justify-between">
-          <div className="flex items-center gap-3">
+      <header className="fixed top-0 left-0 right-0 z-50 glass border-b border-border">
+        <div className="max-w-screen-lg mx-auto flex h-12 items-center justify-between px-4 sm:px-6">
+          <div className="flex items-center gap-2">
             {!isHome && (
-              <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors mr-1">
-                <Home className="h-4 w-4" />
+              <Link to="/" className="mr-1 text-muted-foreground hover:text-foreground transition-colors">
+                <ChevronLeft className="h-4 w-4" />
               </Link>
             )}
-            <Link to="/" className="flex items-center gap-2">
-              <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-display font-bold text-sm">P</span>
+            <Link to="/" className="flex items-center gap-2 group">
+              <div className="h-6 w-6 rounded-md bg-accent flex items-center justify-center">
+                <span className="text-accent-foreground font-bold text-[11px]">P</span>
               </div>
-              <span className="font-display font-semibold text-foreground text-lg tracking-tight">
+              <span className="font-semibold text-foreground text-[15px] tracking-tight">
                 PodChat
               </span>
             </Link>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             <button
               onClick={() => setLang(lang === 'en' ? 'zh' : 'en')}
-              className="h-8 px-2.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-surface transition-colors flex items-center gap-1.5 text-xs font-medium"
+              className="h-7 px-2 rounded-md text-muted-foreground hover:text-foreground transition-colors text-xs"
             >
-              <Globe className="h-3.5 w-3.5" />
               {lang === 'en' ? '中文' : 'EN'}
             </button>
             <button
               onClick={toggleTheme}
-              className="h-8 w-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-surface transition-colors flex items-center justify-center"
+              className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center"
             >
               {theme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
             </button>
             <Link
               to="/settings"
-              className="h-8 w-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-surface transition-colors flex items-center justify-center"
+              className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center"
             >
               <Settings className="h-3.5 w-3.5" />
             </Link>
           </div>
         </div>
       </header>
-
-      <main className="animate-fade-in">
-        {children}
-      </main>
+      <div className="pt-12">{children}</div>
     </div>
   );
 }
