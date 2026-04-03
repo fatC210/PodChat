@@ -10,7 +10,7 @@ const mockPodcasts = [
     created: 'Apr 1',
     aiHost: 'Alex Chen',
     status: 'ready' as const,
-    color: 'from-orange-500/20 to-amber-500/10',
+    color: 'from-primary/15 to-accent/10',
   },
   {
     id: 'demo-2',
@@ -19,7 +19,7 @@ const mockPodcasts = [
     created: 'Mar 28',
     aiHost: null,
     status: 'configuring' as const,
-    color: 'from-blue-500/20 to-indigo-500/10',
+    color: 'from-accent/15 to-primary/10',
   },
 ];
 

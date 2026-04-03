@@ -5,10 +5,10 @@ import { useI18n } from '@/lib/i18n';
 
 const emotions: Record<string, string> = {
   lighthearted: 'bg-emerald-500/10 text-emerald-500',
-  serious: 'bg-red-500/10 text-red-500',
-  excited: 'bg-amber-500/10 text-amber-500',
-  reflective: 'bg-blue-500/10 text-blue-500',
-  humorous: 'bg-violet-500/10 text-violet-500',
+  serious: 'bg-destructive/10 text-destructive',
+  excited: 'bg-accent/10 text-accent',
+  reflective: 'bg-info/10 text-info',
+  humorous: 'bg-primary/10 text-primary',
 };
 
 const segments = [
