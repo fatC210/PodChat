@@ -232,7 +232,7 @@ export default function ListenPage() {
           </div>
 
           {/* Transcript */}
-          <div className="rounded-2xl bg-card border border-border p-4 max-h-[380px] overflow-y-auto">
+          <div ref={transcriptContainerRef} className="rounded-2xl bg-card border border-border p-4 max-h-[380px] overflow-y-auto">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-1.5">
                 <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{t('listen.transcript')}</p>
