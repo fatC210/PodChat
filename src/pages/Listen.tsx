@@ -50,6 +50,9 @@ export default function ListenPage() {
   const [targetLang, setTargetLang] = useState('zh');
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [speakerFilter, setSpeakerFilter] = useState<string | null>(null);
+
+  const speakers = [...new Set(transcript.map(l => l.speaker))];
   const progressRef = useRef<HTMLDivElement>(null);
   const speedRef = useRef<HTMLDivElement>(null);
   const transcriptContainerRef = useRef<HTMLDivElement>(null);
@@ -302,9 +305,23 @@ export default function ListenPage() {
                 </div>
               </div>
             </div>
+            {/* Speaker filter */}
+            <div className="flex items-center gap-1.5 mb-3">
+              <button onClick={() => setSpeakerFilter(null)}
+                className={`px-2.5 py-1 text-[11px] font-medium rounded-full transition-colors ${
+                  !speakerFilter ? 'bg-accent text-accent-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'
+                }`}>All</button>
+              {speakers.map(s => (
+                <button key={s} onClick={() => setSpeakerFilter(speakerFilter === s ? null : s)}
+                  className={`px-2.5 py-1 text-[11px] font-medium rounded-full transition-colors ${
+                    speakerFilter === s ? 'bg-accent text-accent-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'
+                  }`}>{s}</button>
+              ))}
+            </div>
             <div className="space-y-3">
-              {transcript.map((l, i) => {
-                const isActive = i === activeLineIndex;
+              {transcript.filter(l => !speakerFilter || l.speaker === speakerFilter).map((l, i) => {
+                const origIndex = transcript.indexOf(l);
+                const isActive = origIndex === activeLineIndex;
                 return (
                 <div key={i} ref={isActive ? activeLineRef : undefined}
                   onClick={() => setProgress((timeToSeconds(l.time) / totalDuration) * 100)}
