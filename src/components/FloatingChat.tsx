@@ -66,7 +66,7 @@ export default function FloatingChat({ open, onClose }: FloatingChatProps) {
 
   const send = useCallback(() => {
     if (!input.trim()) return;
-    const userMsg: Message = { id: Date.now().toString(), role: 'user', text: input, streaming: true };
+    const userMsg: Message = { id: Date.now().toString(), role: 'user', text: input, streaming: false };
     setMessages(p => [...p, userMsg]);
     setInput('');
     setWaiting(true);
