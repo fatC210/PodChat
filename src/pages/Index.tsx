@@ -68,7 +68,7 @@ export default function Index() {
           <div
             key={podcast.id}
             onClick={() => handleCardClick(podcast)}
-            className="group relative rounded-2xl bg-card border border-border overflow-hidden hover:border-foreground/10 transition-all duration-300 animate-fade-in cursor-pointer"
+            className="group relative rounded-2xl bg-card border border-border hover:border-foreground/10 transition-all duration-300 animate-fade-in cursor-pointer"
             style={{ animationDelay: `${i * 80}ms` }}
           >
             {/* Subtle gradient strip */}
