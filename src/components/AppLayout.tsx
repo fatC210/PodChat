@@ -19,9 +19,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="max-w-screen-lg mx-auto flex h-12 items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-2">
             {!isHome && (
-              <Link to={backTo} className="mr-1 text-muted-foreground hover:text-foreground transition-colors">
+              <button onClick={goBack} className="mr-1 text-muted-foreground hover:text-foreground transition-colors">
                 <ChevronLeft className="h-4 w-4" />
-              </Link>
+              </button>
             )}
             <Link to="/" className="flex items-center gap-2 group">
               <img src={logo} alt="PodChat" className="h-8 w-8" />
