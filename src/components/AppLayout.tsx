@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Settings, ChevronLeft, Sun, Moon } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme';
@@ -8,11 +8,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { t, lang, setLang } = useI18n();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
+  const nav = useNavigate();
   const isHome = location.pathname === '/';
 
-  // Determine back link: summary/settings pages go back to listen page
-  const podcastMatch = location.pathname.match(/^\/podcast\/([^/]+)\/(summary|settings)$/);
-  const backTo = podcastMatch ? `/podcast/${podcastMatch[1]}/listen` : '/';
+  const goBack = () => nav(-1);
 
   return (
     <div className="min-h-screen bg-background">
@@ -20,9 +19,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="max-w-screen-lg mx-auto flex h-12 items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-2">
             {!isHome && (
-              <Link to={backTo} className="mr-1 text-muted-foreground hover:text-foreground transition-colors">
+              <button onClick={goBack} className="mr-1 text-muted-foreground hover:text-foreground transition-colors">
                 <ChevronLeft className="h-4 w-4" />
-              </Link>
+              </button>
             )}
             <Link to="/" className="flex items-center gap-2 group">
               <img src={logo} alt="PodChat" className="h-8 w-8" />
