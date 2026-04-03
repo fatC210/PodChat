@@ -35,38 +35,32 @@ export default function NewPodcastPage() {
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
       <h1 className="text-2xl font-bold text-foreground mb-6">{t('wizard.title')}</h1>
 
-      {/* Progress - pill tabs + bar */}
-      <div className="mb-2">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-hide">
-          {STEPS.map((s, i) => (
+      {/* Progress */}
+      <div className="flex items-center gap-1 mb-8">
+        {STEPS.map((s, i) => (
+          <div key={s.key} className="flex items-center">
             <button
-              key={s.key}
               onClick={() => i < step && setStep(i)}
               disabled={i > step}
-              className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-medium whitespace-nowrap transition-all shrink-0 ${
+              className={`h-7 w-7 rounded-full text-[10px] font-semibold flex items-center justify-center transition-all ${
                 i === step
-                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  ? 'bg-accent text-accent-foreground'
                   : i < step
-                  ? 'bg-secondary text-foreground cursor-pointer hover:bg-surface-hover'
-                  : 'bg-secondary/50 text-muted-foreground'
+                  ? 'bg-foreground text-background cursor-pointer'
+                  : 'bg-secondary text-muted-foreground'
               }`}
             >
-              <s.icon className="h-3.5 w-3.5" />
-              {t(`wizard.${s.key}` as any)}
+              {i < step ? <Check className="h-3 w-3" /> : i + 1}
             </button>
-          ))}
-        </div>
-        {/* Progress bar */}
-        <div className="relative h-1.5 bg-secondary rounded-full mt-1 overflow-hidden">
-          <div
-            className="absolute inset-y-0 left-0 bg-primary rounded-full transition-all duration-500 ease-out"
-            style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
-          />
-        </div>
+            {i < STEPS.length - 1 && (
+              <div className={`w-4 sm:w-8 h-px mx-0.5 ${i < step ? 'bg-foreground' : 'bg-border'}`} />
+            )}
+          </div>
+        ))}
       </div>
 
-      {/* Step description */}
-      <div className="mb-6 mt-4">
+      {/* Step label */}
+      <div className="mb-6">
         <p className="text-sm font-semibold text-foreground">{t(`wizard.${STEPS[step].key}` as any)}</p>
         <p className="text-xs text-muted-foreground">{t(`wizard.${STEPS[step].key}Desc` as any)}</p>
       </div>
