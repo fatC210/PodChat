@@ -138,7 +138,7 @@ export default function SettingsPage() {
           <div>
             <label className="text-xs text-muted-foreground mb-1.5 block">{t('settings.modelName')}</label>
             <input value={keys.llmModel} onChange={e => setKeys(p => ({ ...p, llmModel: e.target.value }))} placeholder="gpt-4o"
-              className="w-full h-9 px-3 rounded-lg bg-secondary border-0 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-accent" />
+              className="w-full h-9 px-3 rounded-lg bg-secondary border-0 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
           </div>
         </div>
 
