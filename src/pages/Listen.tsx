@@ -51,6 +51,23 @@ export default function ListenPage() {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const progressRef = useRef<HTMLDivElement>(null);
   const speedRef = useRef<HTMLDivElement>(null);
+  const transcriptContainerRef = useRef<HTMLDivElement>(null);
+  const activeLineRef = useRef<HTMLDivElement>(null);
+
+  const totalDuration = 2723; // 45:23 in seconds
+  const currentTime = (progress / 100) * totalDuration;
+  const activeLineIndex = transcript.reduce((acc, l, i) => {
+    return timeToSeconds(l.time) <= currentTime ? i : acc;
+  }, 0);
+
+  useEffect(() => {
+    if (activeLineRef.current && transcriptContainerRef.current) {
+      const container = transcriptContainerRef.current;
+      const el = activeLineRef.current;
+      const top = el.offsetTop - container.offsetTop - container.clientHeight / 3;
+      container.scrollTo({ top, behavior: 'smooth' });
+    }
+  }, [activeLineIndex]);
 
   const timeToSeconds = (t: string) => {
     const parts = t.split(':').map(Number);
@@ -215,7 +232,7 @@ export default function ListenPage() {
           </div>
 
           {/* Transcript */}
-          <div className="rounded-2xl bg-card border border-border p-4 max-h-[380px] overflow-y-auto">
+          <div ref={transcriptContainerRef} className="rounded-2xl bg-card border border-border p-4 max-h-[380px] overflow-y-auto">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-1.5">
                 <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{t('listen.transcript')}</p>
@@ -281,8 +298,13 @@ export default function ListenPage() {
               </div>
             </div>
             <div className="space-y-3">
-              {transcript.map((l, i) => (
-                <div key={i} className="cursor-pointer hover:bg-secondary/50 -mx-2 px-2 py-1.5 rounded-lg transition-colors">
+              {transcript.map((l, i) => {
+                const isActive = i === activeLineIndex;
+                return (
+                <div key={i} ref={isActive ? activeLineRef : undefined}
+                  className={`cursor-pointer -mx-2 px-2 py-1.5 rounded-lg transition-all duration-300 ${
+                    isActive ? 'bg-accent/10 border-l-2 border-accent pl-3' : 'hover:bg-secondary/50'
+                  }`}>
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className={`text-[11px] font-semibold ${l.color}`}>{l.speaker}</span>
                     <span className="font-mono text-[10px] text-muted-foreground">{l.time}</span>
@@ -306,7 +328,8 @@ export default function ListenPage() {
                     </>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
