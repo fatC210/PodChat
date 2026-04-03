@@ -138,7 +138,7 @@ export default function ListenPage() {
               </button>
               <button className="text-muted-foreground hover:text-foreground transition-colors"><SkipForward className="h-4 w-4" /></button>
               {/* Speed selector */}
-              <div className="relative">
+              <div className="relative" ref={speedRef}>
                 <button onClick={() => setShowSpeed(!showSpeed)}
                   className="h-7 px-2.5 rounded-lg bg-secondary text-xs font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
                 >
