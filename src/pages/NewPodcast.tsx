@@ -127,7 +127,7 @@ export default function NewPodcastPage() {
       </div>
 
       {/* Content */}
-      <div className="min-h-[340px] animate-fade-in">
+      <div className="animate-fade-in">
         {step === 0 && (
           <label
             className={`flex flex-col items-center justify-center h-60 rounded-2xl border-2 border-dashed cursor-pointer transition-all ${
@@ -249,7 +249,7 @@ export default function NewPodcastPage() {
 
       {/* Navigation — hide during AI steps */}
       {!isOnAiStep && (
-        <div className="flex items-center justify-between mt-8 pt-6 border-t border-border">
+        <div className="flex items-center justify-between mt-6 pt-4">
           <button onClick={handlePrev} disabled={step === 0}
             className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-0 transition-all">
             <ChevronLeft className="h-4 w-4" /> {t('common.previous')}
