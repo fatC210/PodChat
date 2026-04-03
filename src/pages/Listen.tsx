@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { MessageCircle, Zap, Play, Pause, SkipBack, SkipForward, Settings, ChevronDown, Languages, Download } from 'lucide-react';
+import { MessageCircle, Play, Pause, SkipBack, SkipForward, Settings, ChevronDown, Languages, Download } from 'lucide-react';
+import SummaryButton from '@/components/SummaryButton';
 import { useI18n } from '@/lib/i18n';
 import FloatingChat from '@/components/FloatingChat';
 
@@ -149,9 +150,7 @@ export default function ListenPage() {
           <button onClick={() => setChatOpen(true)} className="h-8 px-3 rounded-lg bg-accent text-accent-foreground text-xs font-semibold hover:opacity-90 transition-all shadow-sm inline-flex items-center gap-1.5">
             <MessageCircle className="h-3.5 w-3.5" /> {t('home.chat')}
           </button>
-          <Link to={`/podcast/${id}/summary`} className="h-8 px-3 rounded-lg bg-accent text-accent-foreground text-xs font-semibold hover:opacity-90 transition-all shadow-sm inline-flex items-center gap-1.5">
-            <Zap className="h-3.5 w-3.5" /> {t('home.summary')}
-          </Link>
+          <SummaryButton podcastId={id!} />
           <Link to={`/podcast/${id}/settings`} className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center">
             <Settings className="h-3.5 w-3.5" />
           </Link>
