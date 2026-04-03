@@ -22,8 +22,8 @@ const USER_STEPS = ALL_STEPS
   .filter(s => s.userStep);
 
 const mockSpeakers = [
-  { id: 's1', name: 'Speaker 1', pct: 62, preview: 'Welcome everyone to today\'s episode...' },
-  { id: 's2', name: 'Speaker 2', pct: 38, preview: 'Thanks for having me here today...' },
+  { id: 's1', name: 'Speaker 1', pct: 62, preview: 'Welcome everyone to today\'s episode...', duration: '0:12' },
+  { id: 's2', name: 'Speaker 2', pct: 38, preview: 'Thanks for having me here today...', duration: '0:08' },
 ];
 
 export default function NewPodcastPage() {
