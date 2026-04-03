@@ -19,7 +19,7 @@ const mockPodcasts = [
     created: 'Mar 28',
     aiHost: null,
     status: 'configuring' as const,
-    color: 'from-blue-500/20 to-indigo-500/10',
+    color: 'from-accent/15 to-primary/10',
   },
 ];
 
