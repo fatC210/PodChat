@@ -72,7 +72,7 @@ export default function Index() {
             style={{ animationDelay: `${i * 80}ms` }}
           >
             {/* Subtle gradient strip */}
-            <div className={`absolute inset-0 bg-gradient-to-r ${podcast.color} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+            <div className={`absolute inset-0 bg-gradient-to-r ${podcast.color} opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl overflow-hidden`} />
 
             <div className="relative p-5 sm:p-6">
               <div className="flex items-center justify-between gap-4">
