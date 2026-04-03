@@ -91,6 +91,7 @@ const translations = {
     'wizard.cloning': 'Cloning voice...',
     'wizard.analyzing': 'Analyzing speaking style...',
     'wizard.building': 'Building knowledge base...',
+    'wizard.host.preview': 'Preview',
     'wizard.pill.upload': 'Upload',
     'wizard.pill.type': 'Format',
     'wizard.pill.speakers': 'Speakers',
