@@ -51,6 +51,23 @@ export default function ListenPage() {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const progressRef = useRef<HTMLDivElement>(null);
   const speedRef = useRef<HTMLDivElement>(null);
+  const transcriptContainerRef = useRef<HTMLDivElement>(null);
+  const activeLineRef = useRef<HTMLDivElement>(null);
+
+  const totalDuration = 2723; // 45:23 in seconds
+  const currentTime = (progress / 100) * totalDuration;
+  const activeLineIndex = transcript.reduce((acc, l, i) => {
+    return timeToSeconds(l.time) <= currentTime ? i : acc;
+  }, 0);
+
+  useEffect(() => {
+    if (activeLineRef.current && transcriptContainerRef.current) {
+      const container = transcriptContainerRef.current;
+      const el = activeLineRef.current;
+      const top = el.offsetTop - container.offsetTop - container.clientHeight / 3;
+      container.scrollTo({ top, behavior: 'smooth' });
+    }
+  }, [activeLineIndex]);
 
   const timeToSeconds = (t: string) => {
     const parts = t.split(':').map(Number);
