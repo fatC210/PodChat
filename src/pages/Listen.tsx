@@ -301,6 +301,7 @@ export default function ListenPage() {
                 const isActive = i === activeLineIndex;
                 return (
                 <div key={i} ref={isActive ? activeLineRef : undefined}
+                  onClick={() => setProgress((timeToSeconds(l.time) / totalDuration) * 100)}
                   className={`cursor-pointer -mx-2 px-2 py-1.5 rounded-lg transition-all duration-300 ${
                     isActive ? 'bg-accent/10 border-l-2 border-accent pl-3' : 'hover:bg-secondary/50'
                   }`}>
