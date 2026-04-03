@@ -46,6 +46,8 @@ export default function ListenPage() {
   const [chatOpen, setChatOpen] = useState(false);
   const [transcriptMode, setTranscriptMode] = useState<TranscriptMode>('original');
   const [showTranscriptMenu, setShowTranscriptMenu] = useState(false);
+  const [targetLang, setTargetLang] = useState('zh');
+  const [showLangMenu, setShowLangMenu] = useState(false);
   const progressRef = useRef<HTMLDivElement>(null);
   const speedRef = useRef<HTMLDivElement>(null);
 
