@@ -29,6 +29,7 @@ export default function ListenPage() {
   const [speed, setSpeed] = useState(1);
   const [showSpeed, setShowSpeed] = useState(false);
   const [activeCh, setActiveCh] = useState('2');
+  const [chatOpen, setChatOpen] = useState(false);
 
   return (
     <div className="max-w-screen-lg mx-auto px-4 sm:px-6 py-6">
