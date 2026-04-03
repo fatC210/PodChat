@@ -142,7 +142,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <button className="w-full h-10 rounded-lg bg-foreground text-background font-medium text-sm hover:opacity-90 transition-opacity">
+        <button className="w-full h-10 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:opacity-90 transition-opacity">
           {t('common.save')}
         </button>
       </div>
