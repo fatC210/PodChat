@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Settings, ChevronLeft, Globe, Sun, Moon } from 'lucide-react';
+import { Settings, ChevronLeft, Sun, Moon } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme';
+import logo from '@/assets/logo.png';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { t, lang, setLang } = useI18n();
@@ -20,9 +21,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </Link>
             )}
             <Link to="/" className="flex items-center gap-2 group">
-              <div className="h-6 w-6 rounded-md bg-accent flex items-center justify-center">
-                <span className="text-accent-foreground font-bold text-[11px]">P</span>
-              </div>
+              <img src={logo} alt="PodChat" className="h-6 w-6" />
               <span className="font-semibold text-foreground text-[15px] tracking-tight">
                 {t('app.name')}
               </span>
