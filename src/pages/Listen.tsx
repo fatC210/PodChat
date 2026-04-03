@@ -217,7 +217,23 @@ export default function ListenPage() {
           {/* Transcript */}
           <div className="rounded-2xl bg-card border border-border p-4 max-h-[380px] overflow-y-auto">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{t('listen.transcript')}</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{t('listen.transcript')}</p>
+                {/* Export */}
+                <div className="relative">
+                  <button onClick={() => setShowExportMenu(!showExportMenu)}
+                    className="h-6 w-6 rounded-md text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center">
+                    <Download className="h-3.5 w-3.5" />
+                  </button>
+                  {showExportMenu && (
+                    <div className="absolute top-full mt-1 left-0 bg-card border border-border rounded-xl py-1 shadow-lg min-w-[80px] z-10 animate-scale-in">
+                      <button onClick={exportTxt} className="block w-full px-3 py-1.5 text-[11px] text-left text-foreground hover:bg-secondary transition-colors">.txt</button>
+                      <button onClick={exportSrt} className="block w-full px-3 py-1.5 text-[11px] text-left text-foreground hover:bg-secondary transition-colors">.srt</button>
+                      <button onClick={exportVtt} className="block w-full px-3 py-1.5 text-[11px] text-left text-foreground hover:bg-secondary transition-colors">.vtt</button>
+                    </div>
+                  )}
+                </div>
+              </div>
               <div className="flex items-center gap-1.5">
                 {/* Target language selector - show when not original-only */}
                 {transcriptMode !== 'original' && (
