@@ -25,7 +25,7 @@ function KeyInput({ id, label, placeholder, value, onChange, show, onToggle, onT
             value={value}
             onChange={onChange}
             placeholder={placeholder}
-            className="w-full h-9 px-3 pr-8 rounded-lg bg-secondary border-0 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-accent"
+            className="w-full h-9 px-3 pr-8 rounded-lg bg-secondary border-0 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
           />
           <button onClick={onToggle} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
             {show ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
