@@ -91,7 +91,7 @@ export default function SummaryPage() {
         <h1 className="text-2xl font-bold text-foreground">{t('summary.title')}</h1>
 
         {/* Duration split button */}
-        <div className="relative">
+        <div className="relative" ref={durRef}>
           <button
             onClick={() => setShowDurMenu(!showDurMenu)}
             className="h-8 px-4 rounded-full bg-accent text-accent-foreground text-xs font-semibold hover:opacity-90 transition-all shadow-sm inline-flex items-center gap-1.5"
