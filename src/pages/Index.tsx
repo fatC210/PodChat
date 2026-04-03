@@ -25,7 +25,7 @@ const initialPodcasts = [
 ];
 
 export default function Index() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const nav = useNavigate();
   const [podcasts, setPodcasts] = useState(initialPodcasts);
 
