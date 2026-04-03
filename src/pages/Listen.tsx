@@ -174,26 +174,50 @@ export default function ListenPage() {
           <div className="rounded-2xl bg-card border border-border p-4 max-h-[380px] overflow-y-auto">
             <div className="flex items-center justify-between mb-3">
               <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{t('listen.transcript')}</p>
-              {/* Translation mode selector */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowTranscriptMenu(!showTranscriptMenu)}
-                  className="h-7 px-2.5 rounded-lg bg-secondary text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-                >
-                  <Languages className="h-3 w-3" />
-                  {transcriptModes.find(m => m.key === transcriptMode)?.label}
-                  <ChevronDown className="h-3 w-3" />
-                </button>
-                {showTranscriptMenu && (
-                  <div className="absolute top-full mt-1 right-0 bg-card border border-border rounded-xl p-1 shadow-lg min-w-[140px] z-10">
-                    {transcriptModes.map(m => (
-                      <button key={m.key} onClick={() => { setTranscriptMode(m.key); setShowTranscriptMenu(false); }}
-                        className={`block w-full px-3 py-1.5 text-[11px] rounded-lg text-left transition-colors ${
-                          transcriptMode === m.key ? 'bg-accent text-accent-foreground font-medium' : 'text-foreground hover:bg-secondary'
-                        }`}>{m.label}</button>
-                    ))}
+              <div className="flex items-center gap-1.5">
+                {/* Target language selector - show when not original-only */}
+                {transcriptMode !== 'original' && (
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowLangMenu(!showLangMenu)}
+                      className="h-7 px-2.5 rounded-lg bg-secondary text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                    >
+                      {targetLangs.find(l => l.code === targetLang)?.label}
+                      <ChevronDown className="h-3 w-3" />
+                    </button>
+                    {showLangMenu && (
+                      <div className="absolute top-full mt-1 right-0 bg-card border border-border rounded-xl py-1 shadow-lg min-w-[100px] z-10 animate-scale-in">
+                        {targetLangs.map(l => (
+                          <button key={l.code} onClick={() => { setTargetLang(l.code); setShowLangMenu(false); }}
+                            className={`block w-full px-3 py-1.5 text-[11px] text-left transition-colors ${
+                              targetLang === l.code ? 'bg-accent text-accent-foreground font-medium' : 'text-foreground hover:bg-secondary'
+                            }`}>{l.label}</button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
+                {/* Translation mode selector */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowTranscriptMenu(!showTranscriptMenu)}
+                    className="h-7 px-2.5 rounded-lg bg-secondary text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                  >
+                    <Languages className="h-3 w-3" />
+                    {transcriptModes.find(m => m.key === transcriptMode)?.label}
+                    <ChevronDown className="h-3 w-3" />
+                  </button>
+                  {showTranscriptMenu && (
+                    <div className="absolute top-full mt-1 right-0 bg-card border border-border rounded-xl p-1 shadow-lg min-w-[140px] z-10 animate-scale-in">
+                      {transcriptModes.map(m => (
+                        <button key={m.key} onClick={() => { setTranscriptMode(m.key); setShowTranscriptMenu(false); }}
+                          className={`block w-full px-3 py-1.5 text-[11px] rounded-lg text-left transition-colors ${
+                            transcriptMode === m.key ? 'bg-accent text-accent-foreground font-medium' : 'text-foreground hover:bg-secondary'
+                          }`}>{m.label}</button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             <div className="space-y-3">
