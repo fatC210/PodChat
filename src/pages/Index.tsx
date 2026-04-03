@@ -75,7 +75,7 @@ export default function Index() {
             <div className={`absolute inset-0 bg-gradient-to-r ${podcast.color} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
 
             <div className="relative p-5 sm:p-6">
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2.5 mb-1">
                     <Radio className="h-4 w-4 text-accent flex-shrink-0" />
