@@ -66,7 +66,7 @@ export default function SettingsPage() {
             {(['dark', 'light'] as const).map(th => (
               <button key={th} onClick={() => setTheme(th)}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                  theme === th ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
+                  theme === th ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'
                 }`}
               >
                 {th === 'dark' ? <Moon className="h-3 w-3" /> : <Sun className="h-3 w-3" />}
