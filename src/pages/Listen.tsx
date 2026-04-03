@@ -89,10 +89,10 @@ export default function ListenPage() {
           </div>
 
           {/* Chat CTA */}
-          <Link to={`/podcast/${id}/chat`}
-            className="flex items-center justify-center gap-2 h-11 rounded-xl bg-accent/10 text-accent text-sm font-medium hover:bg-accent/15 transition-colors">
+          <button onClick={() => setChatOpen(true)}
+            className="flex items-center justify-center gap-2 w-full h-11 rounded-xl bg-accent/10 text-accent text-sm font-medium hover:bg-accent/15 transition-colors">
             <MessageCircle className="h-4 w-4" /> {t('listen.chatNow')}
-          </Link>
+          </button>
 
           {/* Transcript */}
           <div className="rounded-2xl bg-card border border-border p-4 max-h-[380px] overflow-y-auto">
