@@ -57,7 +57,7 @@ export default function ChatPage() {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-4 pb-2 pt-2">
         {messages.map((m, i) => (
-          <div key={m.id} className={`flex items-end gap-2 ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'} animate-fade-in`}
+          <div key={m.id} className={`flex items-start gap-2 ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'} animate-fade-in`}
             style={{ animationDelay: `${i * 50}ms` }}>
             {/* Avatar */}
             {m.role === 'ai' && (
@@ -78,7 +78,7 @@ export default function ChatPage() {
           </div>
         ))}
         {speaking && (
-          <div className="flex items-end gap-2 animate-fade-in">
+          <div className="flex items-start gap-2 animate-fade-in">
             <div className="h-7 w-7 rounded-full shrink-0 flex items-center justify-center text-[10px] font-bold bg-accent/15 border border-accent text-accent">
               AC
             </div>
