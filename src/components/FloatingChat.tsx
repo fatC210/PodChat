@@ -16,23 +16,26 @@ interface FloatingChatProps {
 
 function StreamingText({ text, onDone }: { text: string; onDone?: () => void }) {
   const [displayed, setDisplayed] = useState('');
+  const [done, setDone] = useState(false);
   const idx = useRef(0);
 
   useEffect(() => {
     idx.current = 0;
     setDisplayed('');
+    setDone(false);
     const iv = setInterval(() => {
       idx.current++;
       setDisplayed(text.slice(0, idx.current));
       if (idx.current >= text.length) {
         clearInterval(iv);
+        setDone(true);
         onDone?.();
       }
     }, 25);
     return () => clearInterval(iv);
   }, [text, onDone]);
 
-  return <>{displayed}<span className="inline-block w-[2px] h-[12px] bg-foreground/60 ml-0.5 animate-pulse align-middle" /></>;
+  return <>{displayed}{!done && <span className="inline-block w-[2px] h-[12px] bg-foreground/60 ml-0.5 animate-pulse align-middle" />}</>;
 }
 
 export default function FloatingChat({ open, onClose }: FloatingChatProps) {
