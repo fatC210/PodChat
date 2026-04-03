@@ -68,11 +68,11 @@ export default function Index() {
           <div
             key={podcast.id}
             onClick={() => handleCardClick(podcast)}
-            className="group relative rounded-2xl bg-card border border-border overflow-hidden hover:border-foreground/10 transition-all duration-300 animate-fade-in cursor-pointer"
+            className="group relative rounded-2xl bg-card border border-border hover:border-foreground/10 transition-all duration-300 animate-fade-in cursor-pointer"
             style={{ animationDelay: `${i * 80}ms` }}
           >
             {/* Subtle gradient strip */}
-            <div className={`absolute inset-0 bg-gradient-to-r ${podcast.color} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+            <div className={`absolute inset-0 bg-gradient-to-r ${podcast.color} opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl overflow-hidden`} />
 
             <div className="relative p-5 sm:p-6">
               <div className="flex items-center justify-between gap-4">
