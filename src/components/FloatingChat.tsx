@@ -18,22 +18,30 @@ function StreamingText({ text, onDone }: { text: string; onDone?: () => void }) 
   const [displayed, setDisplayed] = useState('');
   const [done, setDone] = useState(false);
   const idx = useRef(0);
+  const onDoneRef = useRef(onDone);
+
+  useEffect(() => {
+    onDoneRef.current = onDone;
+  }, [onDone]);
 
   useEffect(() => {
     idx.current = 0;
     setDisplayed('');
     setDone(false);
+
     const iv = setInterval(() => {
-      idx.current++;
+      idx.current += 1;
       setDisplayed(text.slice(0, idx.current));
+
       if (idx.current >= text.length) {
         clearInterval(iv);
         setDone(true);
-        onDone?.();
+        onDoneRef.current?.();
       }
     }, 25);
+
     return () => clearInterval(iv);
-  }, [text, onDone]);
+  }, [text]);
 
   return <>{displayed}{!done && <span className="inline-block w-[2px] h-[12px] bg-foreground/60 ml-0.5 animate-pulse align-middle" />}</>;
 }
