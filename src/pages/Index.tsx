@@ -94,7 +94,7 @@ export default function Index() {
                       <Clock className="h-3 w-3" />
                       {podcast.duration}
                     </span>
-                    <span>{podcast.created}</span>
+                    <span>{podcast.created.toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US', { month: 'short', day: 'numeric' })}</span>
                     {podcast.aiHost && (
                       <span className="flex items-center gap-1">
                         <User className="h-3 w-3" />
