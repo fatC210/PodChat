@@ -377,10 +377,10 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+const fallbackT = (key: string) => key;
+const fallbackCtx: I18nContextType = { lang: 'en', setLang: () => {}, t: fallbackT };
+
 export function useI18n() {
   const ctx = useContext(I18nContext);
-  if (!ctx) {
-    throw new Error('useI18n must be used within I18nProvider');
-  }
-  return ctx;
+  return ctx ?? fallbackCtx;
 }
