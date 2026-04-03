@@ -35,27 +35,19 @@ export default function NewPodcastPage() {
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
       <h1 className="text-2xl font-bold text-foreground mb-6">{t('wizard.title')}</h1>
 
-      {/* Progress */}
-      <div className="flex items-center gap-1 mb-8">
+      {/* Progress — pill style */}
+      <div className="flex items-center gap-1.5 mb-8">
         {STEPS.map((s, i) => (
-          <div key={s.key} className="flex items-center">
-            <button
-              onClick={() => i < step && setStep(i)}
-              disabled={i > step}
-              className={`h-7 w-7 rounded-full text-[10px] font-semibold flex items-center justify-center transition-all ${
-                i === step
-                  ? 'bg-accent text-accent-foreground'
-                  : i < step
-                  ? 'bg-foreground text-background cursor-pointer'
-                  : 'bg-secondary text-muted-foreground'
-              }`}
-            >
-              {i < step ? <Check className="h-3 w-3" /> : i + 1}
-            </button>
-            {i < STEPS.length - 1 && (
-              <div className={`w-4 sm:w-8 h-px mx-0.5 ${i < step ? 'bg-foreground' : 'bg-border'}`} />
-            )}
-          </div>
+          <button
+            key={s.key}
+            onClick={() => i < step && setStep(i)}
+            disabled={i > step}
+            className={`flex-1 h-1.5 rounded-full transition-all ${
+              i <= step
+                ? 'bg-accent'
+                : 'bg-secondary'
+            } ${i < step ? 'cursor-pointer hover:bg-accent/80' : ''}`}
+          />
         ))}
       </div>
 
