@@ -82,7 +82,9 @@ export default function SummaryPage() {
     }
   }, []);
 
-  const segments = dur ? segmentsByDuration[dur] || [] : [];
+  const summary = dur ? summaryByDuration[dur] : null;
+  const segments = summary?.segments || [];
+  const overallEmotion = summary?.emotion || null;
 
   const handleSelectDuration = (d: number) => {
     setDur(d);
