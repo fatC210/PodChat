@@ -55,6 +55,11 @@ export default function ListenPage() {
   const transcriptContainerRef = useRef<HTMLDivElement>(null);
   const activeLineRef = useRef<HTMLDivElement>(null);
 
+  const timeToSeconds = (t: string) => {
+    const parts = t.split(':').map(Number);
+    return parts.length === 3 ? parts[0] * 3600 + parts[1] * 60 + parts[2] : parts[0] * 60 + parts[1];
+  };
+
   const totalDuration = 2723; // 45:23 in seconds
   const currentTime = (progress / 100) * totalDuration;
   const activeLineIndex = transcript.reduce((acc, l, i) => {
@@ -69,11 +74,6 @@ export default function ListenPage() {
       container.scrollTo({ top, behavior: 'smooth' });
     }
   }, [activeLineIndex]);
-
-  const timeToSeconds = (t: string) => {
-    const parts = t.split(':').map(Number);
-    return parts.length === 3 ? parts[0] * 3600 + parts[1] * 60 + parts[2] : parts[0] * 60 + parts[1];
-  };
 
   const pad = (n: number) => n.toString().padStart(2, '0');
   const fmtSrt = (s: number) => `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)},000`;
