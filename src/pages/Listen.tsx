@@ -37,6 +37,16 @@ export default function ListenPage() {
   const [transcriptMode, setTranscriptMode] = useState<TranscriptMode>('original');
   const [showTranscriptMenu, setShowTranscriptMenu] = useState(false);
   const progressRef = useRef<HTMLDivElement>(null);
+  const speedRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showSpeed) return;
+    const handler = (e: MouseEvent) => {
+      if (speedRef.current && !speedRef.current.contains(e.target as Node)) setShowSpeed(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showSpeed]);
 
   const handleProgressClick = (e: React.MouseEvent) => {
     if (!progressRef.current) return;
