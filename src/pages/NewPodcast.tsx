@@ -26,6 +26,38 @@ const mockSpeakers = [
   { id: 's2', name: 'Speaker 2', pct: 38, preview: 'Thanks for having me here today...', duration: '0:08' },
 ];
 
+// Persona presets
+const PERSONA_PRESETS = [
+  {
+    id: 'enthusiastic',
+    labelKey: 'wizard.persona.enthusiastic',
+    personality: { en: 'Enthusiastic, energetic, uses vivid language', zh: '热情洋溢、充满活力、语言生动形象' },
+    catchphrases: { en: '"That\'s amazing!", "Let me tell you why this matters"', zh: '"太棒了！"、"让我告诉你为什么这很重要"' },
+    answerStyle: { en: 'Hook → storytelling → takeaway', zh: '悬念开场 → 故事叙述 → 要点总结' },
+  },
+  {
+    id: 'analytical',
+    labelKey: 'wizard.persona.analytical',
+    personality: { en: 'Calm, analytical, uses data and analogies', zh: '冷静理性、善于分析、常用数据和类比' },
+    catchphrases: { en: '"Let me break this down", "The data shows..."', zh: '"让我拆解一下"、"数据显示……"' },
+    answerStyle: { en: 'Definition → analysis → conclusion', zh: '定义概念 → 深入分析 → 得出结论' },
+  },
+  {
+    id: 'humorous',
+    labelKey: 'wizard.persona.humorous',
+    personality: { en: 'Witty, humorous, relatable storytelling', zh: '风趣幽默、擅长段子、讲述接地气' },
+    catchphrases: { en: '"Here\'s the funny part", "You won\'t believe this"', zh: '"搞笑的来了"、"你绝对想不到"' },
+    answerStyle: { en: 'Joke/anecdote → insight → punchline', zh: '段子/趣事 → 引出观点 → 金句收尾' },
+  },
+  {
+    id: 'professional',
+    labelKey: 'wizard.persona.professional',
+    personality: { en: 'Professional, structured, authoritative', zh: '专业严谨、条理清晰、权威可信' },
+    catchphrases: { en: '"According to research", "The key point is"', zh: '"根据研究表明"、"关键在于"' },
+    answerStyle: { en: 'Context → key points → summary', zh: '背景铺垫 → 核心要点 → 精炼总结' },
+  },
+];
+
 export default function NewPodcastPage() {
   const { t } = useI18n();
   const nav = useNavigate();
