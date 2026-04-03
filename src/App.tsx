@@ -30,7 +30,6 @@ const App = () => (
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/podcast/new" element={<NewPodcastPage />} />
                 <Route path="/podcast/:id/listen" element={<ListenPage />} />
-                <Route path="/podcast/:id/chat" element={<ChatPage />} />
                 <Route path="/podcast/:id/summary" element={<SummaryPage />} />
                 <Route path="/podcast/:id/settings" element={<PodcastSettingsPage />} />
                 <Route path="*" element={<NotFound />} />

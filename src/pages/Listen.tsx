@@ -127,6 +127,7 @@ export default function ListenPage() {
           </div>
         </div>
       </div>
+      <FloatingChat open={chatOpen} onClose={() => setChatOpen(false)} />
     </div>
   );
 }
