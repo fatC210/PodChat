@@ -249,7 +249,7 @@ export default function NewPodcastPage() {
 
       {/* Navigation — hide during AI steps */}
       {!isOnAiStep && (
-        <div className="flex items-center justify-between mt-8 pt-6 border-t border-border">
+        <div className="flex items-center justify-between mt-6 pt-4">
           <button onClick={handlePrev} disabled={step === 0}
             className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-0 transition-all">
             <ChevronLeft className="h-4 w-4" /> {t('common.previous')}
