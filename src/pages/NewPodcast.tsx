@@ -68,6 +68,10 @@ export default function NewPodcastPage() {
   const [file, setFile] = useState<File | null>(null);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const playTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [selectedPreset, setSelectedPreset] = useState<string>('enthusiastic');
+  const [customPersonality, setCustomPersonality] = useState('');
+  const [customCatchphrases, setCustomCatchphrases] = useState('');
+  const [customAnswerStyle, setCustomAnswerStyle] = useState('');
 
   const handlePlay = (speakerId: string, e: React.MouseEvent) => {
     e.stopPropagation();
