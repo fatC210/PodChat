@@ -64,7 +64,10 @@ export default function NewPodcastPage() {
   const [step, setStep] = useState(0); // internal step index (0-8)
   const [type, setType] = useState<'solo' | 'multi'>('solo');
   const [refCount, setRefCount] = useState(2);
-  const [host, setHost] = useState<string | null>(null);
+  const [host, setHost] = useState<string | null>(() => {
+    const top = mockSpeakers.reduce((a, b) => a.pct > b.pct ? a : b);
+    return top.id;
+  });
   const [file, setFile] = useState<File | null>(null);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const playTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
