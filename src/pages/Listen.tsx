@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { MessageCircle, Zap, Play, Pause, SkipBack, SkipForward, ChevronDown, Settings } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
+import FloatingChat from '@/components/FloatingChat';
 
 const chapters = [
   { id: '1', title: 'Opening', time: '0:00' },
@@ -28,6 +29,7 @@ export default function ListenPage() {
   const [speed, setSpeed] = useState(1);
   const [showSpeed, setShowSpeed] = useState(false);
   const [activeCh, setActiveCh] = useState('2');
+  const [chatOpen, setChatOpen] = useState(false);
 
   return (
     <div className="max-w-screen-lg mx-auto px-4 sm:px-6 py-6">
@@ -35,9 +37,9 @@ export default function ListenPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-lg font-semibold text-foreground truncate">The Future of AI & Creativity</h1>
         <div className="flex items-center gap-1">
-          <Link to={`/podcast/${id}/chat`} className="h-7 px-2.5 rounded-md bg-secondary text-xs font-medium text-secondary-foreground hover:bg-surface-hover transition-colors inline-flex items-center gap-1">
+          <button onClick={() => setChatOpen(true)} className="h-7 px-2.5 rounded-md bg-secondary text-xs font-medium text-secondary-foreground hover:bg-surface-hover transition-colors inline-flex items-center gap-1">
             <MessageCircle className="h-3 w-3" /> {t('home.chat')}
-          </Link>
+          </button>
           <Link to={`/podcast/${id}/summary`} className="h-7 px-2.5 rounded-md bg-secondary text-xs font-medium text-secondary-foreground hover:bg-surface-hover transition-colors inline-flex items-center gap-1">
             <Zap className="h-3 w-3" /> {t('home.summary')}
           </Link>
@@ -87,10 +89,10 @@ export default function ListenPage() {
           </div>
 
           {/* Chat CTA */}
-          <Link to={`/podcast/${id}/chat`}
-            className="flex items-center justify-center gap-2 h-11 rounded-xl bg-accent/10 text-accent text-sm font-medium hover:bg-accent/15 transition-colors">
+          <button onClick={() => setChatOpen(true)}
+            className="flex items-center justify-center gap-2 w-full h-11 rounded-xl bg-accent/10 text-accent text-sm font-medium hover:bg-accent/15 transition-colors">
             <MessageCircle className="h-4 w-4" /> {t('listen.chatNow')}
-          </Link>
+          </button>
 
           {/* Transcript */}
           <div className="rounded-2xl bg-card border border-border p-4 max-h-[380px] overflow-y-auto">
@@ -125,6 +127,7 @@ export default function ListenPage() {
           </div>
         </div>
       </div>
+      <FloatingChat open={chatOpen} onClose={() => setChatOpen(false)} />
     </div>
   );
 }

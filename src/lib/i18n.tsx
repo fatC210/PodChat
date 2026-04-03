@@ -126,6 +126,7 @@ const translations = {
     'chat.orType': 'or type a message',
     'chat.endChat': 'End Chat',
     'chat.greeting': 'You were just listening to the part about {topic}. What would you like to ask?',
+    'chat.newSession': 'New Session',
 
     // Summary Mode
     'summary.title': 'Quick Summary',
@@ -286,6 +287,7 @@ const translations = {
     'chat.orType': '或输入文字发送',
     'chat.endChat': '结束对话',
     'chat.greeting': '你刚听到我在聊 {topic}，有什么想问的吗？',
+    'chat.newSession': '新会话',
 
     // Summary Mode
     'summary.title': '速览模式',

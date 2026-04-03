@@ -93,7 +93,7 @@ export default function Index() {
                 <div className="flex items-center gap-2 mt-4 ml-[26px]">
                   {[
                     { to: `/podcast/${podcast.id}/listen`, icon: Headphones, label: t('home.listen') },
-                    { to: `/podcast/${podcast.id}/chat`, icon: MessageCircle, label: t('home.chat') },
+                    { to: `/podcast/${podcast.id}/listen`, icon: MessageCircle, label: t('home.chat') },
                     { to: `/podcast/${podcast.id}/summary`, icon: Zap, label: t('home.summary') },
                   ].map(btn => (
                     <Link

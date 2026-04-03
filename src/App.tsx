@@ -10,7 +10,6 @@ import Index from "./pages/Index";
 import SettingsPage from "./pages/Settings";
 import NewPodcastPage from "./pages/NewPodcast";
 import ListenPage from "./pages/Listen";
-import ChatPage from "./pages/Chat";
 import SummaryPage from "./pages/Summary";
 import PodcastSettingsPage from "./pages/PodcastSettings";
 import NotFound from "./pages/NotFound";
@@ -31,7 +30,6 @@ const App = () => (
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/podcast/new" element={<NewPodcastPage />} />
                 <Route path="/podcast/:id/listen" element={<ListenPage />} />
-                <Route path="/podcast/:id/chat" element={<ChatPage />} />
                 <Route path="/podcast/:id/summary" element={<SummaryPage />} />
                 <Route path="/podcast/:id/settings" element={<PodcastSettingsPage />} />
                 <Route path="*" element={<NotFound />} />
