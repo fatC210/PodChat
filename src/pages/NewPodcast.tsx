@@ -77,30 +77,46 @@ export default function NewPodcastPage() {
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
       <h1 className="text-2xl font-bold text-foreground mb-6">{t('wizard.title')}</h1>
 
-      {/* Progress — simplified pill tabs (user steps only) */}
-      <div className="flex items-center gap-2 mb-8">
+      {/* Progress — steps connected by dots */}
+      <div className="flex items-center justify-between mb-8">
         {USER_STEPS.map((s, i) => (
-          <button
-            key={s.key}
-            onClick={() => handlePillClick(i)}
-            disabled={s.internalIndex > step}
-            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap border transition-all ${
-              i === currentUserStepIdx && !isOnAiStep
-                ? 'bg-accent text-accent-foreground border-accent shadow-sm'
-                : i === currentUserStepIdx && isOnAiStep
-                ? 'bg-accent/50 text-accent-foreground border-accent/50'
-                : i < currentUserStepIdx
-                ? 'bg-secondary text-foreground border-border cursor-pointer hover:border-accent/50'
-                : 'bg-secondary/50 text-muted-foreground border-border opacity-60'
-            }`}
-          >
-            {i < currentUserStepIdx ? (
-              <Check className="h-3.5 w-3.5 text-accent" />
-            ) : (
-              <s.icon className="h-3.5 w-3.5" />
+          <div key={s.key} className="flex items-center flex-1 last:flex-none">
+            <button
+              onClick={() => handlePillClick(i)}
+              disabled={s.internalIndex > step}
+              className="flex flex-col items-center gap-1.5 group"
+            >
+              <div className={`h-9 w-9 rounded-full flex items-center justify-center border-2 transition-all ${
+                i === currentUserStepIdx
+                  ? 'bg-accent border-accent text-accent-foreground shadow-md shadow-accent/20'
+                  : i < currentUserStepIdx
+                  ? 'bg-accent/15 border-accent text-accent cursor-pointer'
+                  : 'bg-secondary border-border text-muted-foreground'
+              }`}>
+                {i < currentUserStepIdx ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <s.icon className="h-4 w-4" />
+                )}
+              </div>
+              <span className={`text-[11px] font-medium transition-colors ${
+                i <= currentUserStepIdx ? 'text-foreground' : 'text-muted-foreground'
+              }`}>
+                {t(s.labelKey as any)}
+              </span>
+            </button>
+            {i < USER_STEPS.length - 1 && (
+              <div className="flex-1 flex items-center justify-center px-2 -mt-5">
+                <div className="flex items-center gap-1 w-full justify-center">
+                  {[...Array(5)].map((_, d) => (
+                    <div key={d} className={`h-1 w-1 rounded-full transition-colors ${
+                      i < currentUserStepIdx ? 'bg-accent' : 'bg-border'
+                    }`} />
+                  ))}
+                </div>
+              </div>
             )}
-            {t(s.labelKey as any)}
-          </button>
+          </div>
         ))}
       </div>
 
