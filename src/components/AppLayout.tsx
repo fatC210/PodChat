@@ -24,7 +24,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <span className="text-accent-foreground font-bold text-[11px]">P</span>
               </div>
               <span className="font-semibold text-foreground text-[15px] tracking-tight">
-                PodChat
+                {t('app.name')}
               </span>
             </Link>
           </div>

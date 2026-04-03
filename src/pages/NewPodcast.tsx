@@ -4,15 +4,15 @@ import { Upload, Users, User, Play, Check, ChevronRight, ChevronLeft, Volume2, F
 import { useI18n } from '@/lib/i18n';
 
 const STEPS = [
-  { key: 'step1', icon: Upload, label: 'Upload' },
-  { key: 'step2', icon: Users, label: 'Type' },
-  { key: 'step3', icon: Mic, label: 'Speakers' },
-  { key: 'step4', icon: FileAudio, label: 'Script' },
-  { key: 'step5', icon: User, label: 'Host' },
-  { key: 'step6', icon: Volume2, label: 'Clone' },
-  { key: 'step7', icon: Sparkles, label: 'Voice' },
-  { key: 'step8', icon: BookOpen, label: 'Knowledge' },
-  { key: 'step9', icon: Brain, label: 'Persona' },
+  { key: 'step1', icon: Upload, labelKey: 'wizard.pill.upload' },
+  { key: 'step2', icon: Users, labelKey: 'wizard.pill.type' },
+  { key: 'step3', icon: Mic, labelKey: 'wizard.pill.speakers' },
+  { key: 'step4', icon: FileAudio, labelKey: 'wizard.pill.script' },
+  { key: 'step5', icon: User, labelKey: 'wizard.pill.host' },
+  { key: 'step6', icon: Volume2, labelKey: 'wizard.pill.clone' },
+  { key: 'step7', icon: Sparkles, labelKey: 'wizard.pill.voice' },
+  { key: 'step8', icon: BookOpen, labelKey: 'wizard.pill.knowledge' },
+  { key: 'step9', icon: Brain, labelKey: 'wizard.pill.persona' },
 ];
 
 const mockSpeakers = [
@@ -51,7 +51,7 @@ export default function NewPodcastPage() {
             }`}
           >
             <s.icon className="h-3.5 w-3.5" />
-            {s.label}
+            {t(s.labelKey as any)}
           </button>
         ))}
       </div>
