@@ -57,6 +57,10 @@ export default function FloatingChat({ open, onClose }: FloatingChatProps) {
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (open) setTimeout(() => inputRef.current?.focus(), 100);
+  }, [open]);
+
   // Call timer
   useEffect(() => {
     if (!open) return;
