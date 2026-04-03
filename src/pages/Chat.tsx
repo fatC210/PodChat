@@ -54,35 +54,41 @@ export default function ChatPage() {
         <span className="font-mono text-[11px] text-muted-foreground">{fmt(elapsed)}</span>
       </div>
 
-      {/* Avatar */}
-      <div className="flex flex-col items-center py-6 shrink-0">
-        <div className={`relative h-16 w-16 rounded-2xl bg-card border-2 flex items-center justify-center transition-colors ${speaking ? 'border-accent' : 'border-border'}`}>
-          <span className="text-xl font-bold text-foreground">AC</span>
-          {speaking && (
-            <div className="absolute -bottom-2 flex items-end gap-[3px] h-4">
-              {[0, 1, 2, 3, 4].map(i => (
-                <div key={i} className="w-[2px] bg-accent rounded-full animate-bar" style={{ animationDelay: `${i * 120}ms` }} />
-              ))}
-            </div>
-          )}
-        </div>
-        <p className="text-sm font-semibold text-foreground mt-2">Alex Chen</p>
-      </div>
-
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto space-y-3 pb-2">
+      <div className="flex-1 overflow-y-auto space-y-4 pb-2 pt-2">
         {messages.map((m, i) => (
-          <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
+          <div key={m.id} className={`flex items-end gap-2 ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'} animate-fade-in`}
             style={{ animationDelay: `${i * 50}ms` }}>
-            <div className={`max-w-[80%] px-3.5 py-2.5 text-[13px] leading-relaxed ${
+            {/* Avatar */}
+            {m.role === 'ai' && (
+              <div className={`h-7 w-7 rounded-full shrink-0 flex items-center justify-center text-[10px] font-bold border transition-colors ${
+                speaking && i === messages.length - 1 ? 'bg-accent/15 border-accent text-accent' : 'bg-card border-border text-foreground'
+              }`}>
+                AC
+              </div>
+            )}
+            {/* Bubble */}
+            <div className={`max-w-[75%] px-3.5 py-2.5 text-[13px] leading-relaxed ${
               m.role === 'user'
-                ? 'bg-foreground text-background rounded-2xl rounded-br-md'
+                ? 'bg-accent text-accent-foreground rounded-2xl rounded-br-md'
                 : 'bg-card border border-border text-foreground rounded-2xl rounded-bl-md'
             }`}>
               {m.text}
             </div>
           </div>
         ))}
+        {speaking && (
+          <div className="flex items-end gap-2 animate-fade-in">
+            <div className="h-7 w-7 rounded-full shrink-0 flex items-center justify-center text-[10px] font-bold bg-accent/15 border border-accent text-accent">
+              AC
+            </div>
+            <div className="bg-card border border-border rounded-2xl rounded-bl-md px-4 py-3 flex items-center gap-[3px]">
+              {[0, 1, 2].map(i => (
+                <div key={i} className="h-1.5 w-1.5 rounded-full bg-muted-foreground animate-pulse" style={{ animationDelay: `${i * 200}ms` }} />
+              ))}
+            </div>
+          </div>
+        )}
         <div ref={endRef} />
       </div>
 
