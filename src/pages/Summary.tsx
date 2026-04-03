@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { Play, Pause, ExternalLink, ChevronDown } from 'lucide-react';
+import { Play, Pause, ChevronDown } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 
 const emotions: Record<string, string> = {
