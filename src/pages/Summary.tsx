@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { Play, Pause, ExternalLink, ChevronDown } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 
