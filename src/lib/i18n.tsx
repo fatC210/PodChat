@@ -290,7 +290,7 @@ const translations = {
 } as const;
 
 type Lang = 'en' | 'zh';
-type TranslationKey = keyof typeof translations.en;
+type TranslationKey = string;
 
 interface I18nContextType {
   lang: Lang;
