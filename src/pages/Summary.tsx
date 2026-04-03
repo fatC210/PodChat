@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { Play, Pause, ChevronDown } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
@@ -51,6 +51,16 @@ export default function SummaryPage() {
   const [progress, setProgress] = useState(0);
   const [active, setActive] = useState<string | null>(null);
   const [showDurMenu, setShowDurMenu] = useState(false);
+  const durRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showDurMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (durRef.current && !durRef.current.contains(e.target as Node)) setShowDurMenu(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showDurMenu]);
 
   // Auto-start from URL param
   useEffect(() => {
@@ -81,7 +91,7 @@ export default function SummaryPage() {
         <h1 className="text-2xl font-bold text-foreground">{t('summary.title')}</h1>
 
         {/* Duration split button */}
-        <div className="relative">
+        <div className="relative" ref={durRef}>
           <button
             onClick={() => setShowDurMenu(!showDurMenu)}
             className="h-8 px-4 rounded-full bg-accent text-accent-foreground text-xs font-semibold hover:opacity-90 transition-all shadow-sm inline-flex items-center gap-1.5"
