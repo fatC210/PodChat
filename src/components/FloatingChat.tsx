@@ -186,6 +186,8 @@ export default function FloatingChat({ open, onClose }: FloatingChatProps) {
       <div className="px-3 py-2.5 border-t border-border shrink-0">
         <div className="flex items-center gap-2">
           <input
+            ref={inputRef}
+            autoFocus
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && send()}
