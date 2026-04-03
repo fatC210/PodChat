@@ -55,7 +55,7 @@ export default function FloatingChat({ open, onClose }: FloatingChatProps) {
             <span className="text-[9px] font-bold text-accent">AC</span>
           </div>
           <span className="text-sm font-semibold text-foreground">{t('chat.title')}</span>
-          <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+          <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
         </div>
         <div className="flex items-center gap-1">
           <button onClick={newSession} className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors flex items-center justify-center" title={t('chat.newSession')}>
