@@ -227,10 +227,16 @@ export default function ListenPage() {
                 className="h-10 w-10 rounded-full bg-foreground text-background flex items-center justify-center hover:opacity-90 transition-opacity">
                 {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
               </button>
-              <button onClick={() => setProgress(prev => Math.min(100, prev + (10 / totalDuration) * 100))} className="text-muted-foreground hover:text-foreground transition-colors relative">
-                <RotateCw className="h-5 w-5" />
-                <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold mt-0.5">10</span>
-              </button>
+              <TooltipProvider delayDuration={300}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button onClick={() => setProgress(prev => Math.min(100, prev + (10 / totalDuration) * 100))} className="text-muted-foreground hover:text-foreground transition-colors">
+                      <SkipForward className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom"><p>+10s</p></TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               {/* Speed selector */}
               <div className="relative" ref={speedRef}>
                 <button onClick={() => setShowSpeed(!showSpeed)}
