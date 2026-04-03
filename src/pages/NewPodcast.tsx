@@ -151,7 +151,7 @@ export default function NewPodcastPage() {
                 <p className="text-[11px] text-muted-foreground mt-1">{t('wizard.upload.formats')}</p>
               </div>
             )}
-            <input type="file" accept=".mp3,.wav,.m4a" className="hidden" onChange={e => e.target.files?.[0] && setFile(e.target.files[0])} />
+            <input type="file" accept=".mp3,.wav,.m4a,.mp4,.mov,.avi,.mkv,.webm" className="hidden" onChange={e => e.target.files?.[0] && setFile(e.target.files[0])} />
           </label>
         )}
 
