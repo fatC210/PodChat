@@ -1,176 +1,119 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Mic, Send, PhoneOff, Volume2 } from 'lucide-react';
+import { Mic, Send, PhoneOff } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 
 interface Message {
   id: string;
   role: 'user' | 'ai';
   text: string;
-  timestamp: string;
 }
-
-const initialMessages: Message[] = [
-  {
-    id: '1',
-    role: 'ai',
-    text: "Hey! You were just listening to the part where we discussed whether AI can truly be creative. Got any questions about that? 🎙️",
-    timestamp: '0:00',
-  },
-];
 
 export default function ChatPage() {
   const { t } = useI18n();
   const { id } = useParams();
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [messages, setMessages] = useState<Message[]>([
+    { id: '1', role: 'ai', text: "Hey! You were just listening to the part about AI creativity. Got any questions? 🎙️" },
+  ]);
   const [input, setInput] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [elapsedTime, setElapsedTime] = useState(0);
+  const [speaking, setSpeaking] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const timer = setInterval(() => setElapsedTime(p => p + 1), 1000);
-    return () => clearInterval(timer);
+    const t = setInterval(() => setElapsed(p => p + 1), 1000);
+    return () => clearInterval(t);
   }, []);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
-  const formatTime = (s: number) => {
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
-  };
+  const fmt = (s: number) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
 
-  const sendMessage = () => {
+  const send = () => {
     if (!input.trim()) return;
-    const userMsg: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      text: input,
-      timestamp: formatTime(elapsedTime),
-    };
-    setMessages(p => [...p, userMsg]);
+    setMessages(p => [...p, { id: Date.now().toString(), role: 'user', text: input }]);
     setInput('');
-
-    // Simulate AI response
-    setIsSpeaking(true);
+    setSpeaking(true);
     setTimeout(() => {
-      const aiMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'ai',
-        text: "Great question! In the episode, I argued that creativity isn't about generating something from nothing — it's about making unexpected connections between existing ideas. AI does this through pattern recognition at scale, while humans do it through lived experience and emotion. The key difference is intentionality — we create with purpose, while AI creates with probability.",
-        timestamp: formatTime(elapsedTime + 3),
-      };
-      setMessages(p => [...p, aiMsg]);
-      setIsSpeaking(false);
-    }, 2000);
+      setMessages(p => [...p, {
+        id: (Date.now() + 1).toString(), role: 'ai',
+        text: "Great question! In the episode, I argued that creativity isn't about generating something from nothing — it's about making unexpected connections. AI does this through pattern recognition at scale, while humans do it through lived experience.",
+      }]);
+      setSpeaking(false);
+    }, 1800);
   };
 
   return (
-    <div className="container max-w-2xl flex flex-col h-[calc(100vh-3.5rem)]">
+    <div className="max-w-xl mx-auto px-4 flex flex-col h-[calc(100vh-3rem)]">
       {/* Header */}
-      <div className="flex items-center justify-between py-4 border-b border-border">
-        <Link
-          to={`/podcast/${id}/listen`}
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {t('chat.backToListen')}
+      <div className="flex items-center justify-between py-3">
+        <Link to={`/podcast/${id}/listen`} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+          ← {t('chat.backToListen')}
         </Link>
-        <span className="text-xs text-muted-foreground font-mono">{formatTime(elapsedTime)}</span>
+        <span className="font-mono text-[11px] text-muted-foreground">{fmt(elapsed)}</span>
       </div>
 
-      {/* AI Host avatar */}
-      <div className="flex flex-col items-center py-6">
-        <div className={`relative h-20 w-20 rounded-2xl bg-card border-2 flex items-center justify-center transition-colors ${
-          isSpeaking ? 'border-primary' : 'border-border'
-        }`}>
-          <span className="font-display text-2xl font-bold text-foreground">AC</span>
-          {isSpeaking && (
-            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex items-end gap-0.5 h-4">
+      {/* Avatar */}
+      <div className="flex flex-col items-center py-6 shrink-0">
+        <div className={`relative h-16 w-16 rounded-2xl bg-card border-2 flex items-center justify-center transition-colors ${speaking ? 'border-accent' : 'border-border'}`}>
+          <span className="text-xl font-bold text-foreground">AC</span>
+          {speaking && (
+            <div className="absolute -bottom-2 flex items-end gap-[3px] h-4">
               {[0, 1, 2, 3, 4].map(i => (
-                <div
-                  key={i}
-                  className="w-0.5 bg-primary rounded-full animate-waveform"
-                  style={{ animationDelay: `${i * 0.15}s`, height: '4px' }}
-                />
+                <div key={i} className="w-[2px] bg-accent rounded-full animate-bar" style={{ animationDelay: `${i * 120}ms` }} />
               ))}
             </div>
           )}
         </div>
-        <p className="font-display font-semibold text-foreground mt-3">Alex Chen</p>
-        <p className="text-xs text-muted-foreground">AI Host</p>
+        <p className="text-sm font-semibold text-foreground mt-2">Alex Chen</p>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto space-y-4 pb-4">
-        {messages.map(msg => (
-          <div
-            key={msg.id}
-            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
-          >
-            <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
-              msg.role === 'user'
-                ? 'bg-primary text-primary-foreground rounded-br-md'
-                : 'bg-surface text-foreground rounded-bl-md'
+      <div className="flex-1 overflow-y-auto space-y-3 pb-2">
+        {messages.map((m, i) => (
+          <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
+            style={{ animationDelay: `${i * 50}ms` }}>
+            <div className={`max-w-[80%] px-3.5 py-2.5 text-[13px] leading-relaxed ${
+              m.role === 'user'
+                ? 'bg-foreground text-background rounded-2xl rounded-br-md'
+                : 'bg-card border border-border text-foreground rounded-2xl rounded-bl-md'
             }`}>
-              {msg.text}
-              <div className={`text-[10px] mt-1 ${
-                msg.role === 'user' ? 'text-primary-foreground/60' : 'text-muted-foreground'
-              }`}>
-                {msg.timestamp}
-              </div>
+              {m.text}
             </div>
           </div>
         ))}
-        <div ref={messagesEndRef} />
+        <div ref={endRef} />
       </div>
 
-      {/* Input area */}
-      <div className="py-4 border-t border-border space-y-2">
+      {/* Input */}
+      <div className="py-3 border-t border-border space-y-2 shrink-0">
         <div className="flex items-center gap-2">
           <button
-            onMouseDown={() => setIsRecording(true)}
-            onMouseUp={() => setIsRecording(false)}
-            onMouseLeave={() => setIsRecording(false)}
-            className={`h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
-              isRecording
-                ? 'bg-destructive text-destructive-foreground'
-                : 'bg-surface text-muted-foreground hover:text-foreground hover:bg-surface-hover'
+            onMouseDown={() => setRecording(true)}
+            onMouseUp={() => setRecording(false)}
+            onMouseLeave={() => setRecording(false)}
+            className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+              recording ? 'bg-destructive text-destructive-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'
             }`}
           >
             <Mic className="h-4 w-4" />
           </button>
           <div className="flex-1 relative">
-            <input
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && sendMessage()}
+            <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()}
               placeholder={t('chat.placeholder')}
-              className="w-full h-10 pl-4 pr-10 rounded-full bg-surface border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-            <button
-              onClick={sendMessage}
-              disabled={!input.trim()}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-30 hover:opacity-90 transition-opacity"
-            >
+              className="w-full h-9 pl-3 pr-9 rounded-full bg-secondary text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-accent" />
+            <button onClick={send} disabled={!input.trim()}
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-accent text-accent-foreground flex items-center justify-center disabled:opacity-20 hover:opacity-90 transition-opacity">
               <Send className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>
-        <div className="flex items-center justify-between">
-          <p className="text-[10px] text-muted-foreground">
-            {t('chat.holdToSpeak')} · {t('chat.orType')}
-          </p>
-          <Link
-            to={`/podcast/${id}/listen`}
-            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-destructive/10 text-destructive text-xs font-medium hover:bg-destructive/20 transition-colors"
-          >
-            <PhoneOff className="h-3 w-3" />
-            {t('chat.endChat')}
+        <div className="flex items-center justify-between px-1">
+          <p className="text-[10px] text-muted-foreground">{t('chat.holdToSpeak')} · {t('chat.orType')}</p>
+          <Link to={`/podcast/${id}/listen`}
+            className="inline-flex items-center gap-1 text-[11px] text-destructive font-medium hover:underline">
+            <PhoneOff className="h-3 w-3" /> {t('chat.endChat')}
           </Link>
         </div>
       </div>
