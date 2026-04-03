@@ -117,6 +117,10 @@ const translations = {
     'listen.transcript': 'Transcript',
     'listen.chatNow': 'Chat Now',
     'listen.speed': 'Speed',
+    'listen.modeOriginal': 'Original',
+    'listen.modeTranslated': 'Translated',
+    'listen.modeTransTop': 'Trans ↑ Orig ↓',
+    'listen.modeTransBottom': 'Orig ↑ Trans ↓',
 
     // Chat Mode
     'chat.title': 'Chat',
@@ -279,6 +283,10 @@ const translations = {
     'listen.transcript': '文字稿',
     'listen.chatNow': '开聊',
     'listen.speed': '倍速',
+    'listen.modeOriginal': '仅原文',
+    'listen.modeTranslated': '仅译文',
+    'listen.modeTransTop': '译文在上',
+    'listen.modeTransBottom': '译文在下',
 
     // Chat Mode
     'chat.title': '开聊',

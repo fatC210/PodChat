@@ -220,8 +220,8 @@ export default function NewPodcastPage() {
               ))}
             </div>
             {type === 'multi' && (
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">{t('wizard.type.refCount')}</label>
+              <div className="flex items-center gap-3">
+                <label className="text-xs text-muted-foreground whitespace-nowrap">{t('wizard.type.refCount')}</label>
                 <input type="number" min={2} max={10} value={refCount} onChange={e => setRefCount(+e.target.value)}
                   className="w-20 h-9 px-3 rounded-lg bg-secondary text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent" />
               </div>
