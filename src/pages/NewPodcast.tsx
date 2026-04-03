@@ -191,7 +191,7 @@ export default function NewPodcastPage() {
                 <FileAudio className="h-8 w-8 text-accent mx-auto mb-2" />
                 <p className="text-sm font-medium text-foreground">{file.name}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">{(file.size / 1024 / 1024).toFixed(1)} MB</p>
-                <button onClick={e => { e.preventDefault(); setFile(null); }} className="text-xs text-destructive mt-2 hover:underline">Remove</button>
+                <button onClick={e => { e.preventDefault(); setFile(null); }} className="text-xs text-destructive mt-2 hover:underline">{t('common.remove')}</button>
               </div>
             ) : (
               <div className="text-center">
