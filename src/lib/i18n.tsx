@@ -14,6 +14,7 @@ const translations = {
     'common.previous': 'Previous',
     'common.confirm': 'Confirm',
     'common.delete': 'Delete',
+    'common.remove': 'Remove',
     'common.edit': 'Edit',
     'common.export': 'Export',
     'common.import': 'Import',
