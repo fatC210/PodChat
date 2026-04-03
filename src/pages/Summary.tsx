@@ -44,12 +44,21 @@ const segmentsByDuration: Record<number, { id: string; label: string; emotion: s
 export default function SummaryPage() {
   const { t } = useI18n();
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const [dur, setDur] = useState<number | null>(null);
   const [generating, setGenerating] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [active, setActive] = useState<string | null>(null);
   const [showDurMenu, setShowDurMenu] = useState(false);
+
+  // Auto-start from URL param
+  useEffect(() => {
+    const d = Number(searchParams.get('dur'));
+    if (d && [1, 3, 5, 10].includes(d) && !dur) {
+      handleSelectDuration(d);
+    }
+  }, []);
 
   const segments = dur ? segmentsByDuration[dur] || [] : [];
 
