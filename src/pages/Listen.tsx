@@ -135,15 +135,13 @@ export default function ListenPage() {
                   {speed}x <ChevronDown className="h-3 w-3" />
                 </button>
                 {showSpeed && (
-                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-card border border-border rounded-xl p-1.5 shadow-lg min-w-[120px]">
-                    <div className="grid grid-cols-3 gap-1">
-                      {speeds.map(s => (
-                        <button key={s} onClick={() => { setSpeed(s); setShowSpeed(false); }}
-                          className={`px-2 py-1.5 text-xs rounded-lg text-center font-medium transition-colors ${
-                            speed === s ? 'bg-accent text-accent-foreground' : 'text-foreground hover:bg-secondary'
-                          }`}>{s}x</button>
-                      ))}
-                    </div>
+                  <div className="absolute bottom-full mb-2 right-0 bg-card border border-border rounded-xl py-1 shadow-lg min-w-[56px] animate-scale-in">
+                    {speeds.map(s => (
+                      <button key={s} onClick={() => { setSpeed(s); setShowSpeed(false); }}
+                        className={`w-full px-3 py-1.5 text-xs text-center font-medium transition-colors ${
+                          speed === s ? 'bg-accent text-accent-foreground' : 'text-foreground hover:bg-secondary'
+                        }`}>{s}x</button>
+                    ))}
                   </div>
                 )}
               </div>
