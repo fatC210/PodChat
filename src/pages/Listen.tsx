@@ -213,10 +213,16 @@ export default function ListenPage() {
 
             {/* Controls */}
             <div className="flex items-center justify-center gap-5">
-              <button onClick={() => setProgress(prev => Math.max(0, prev - (10 / totalDuration) * 100))} className="text-muted-foreground hover:text-foreground transition-colors relative">
-                <RotateCcw className="h-5 w-5" />
-                <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold mt-0.5">10</span>
-              </button>
+              <TooltipProvider delayDuration={300}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button onClick={() => setProgress(prev => Math.max(0, prev - (10 / totalDuration) * 100))} className="text-muted-foreground hover:text-foreground transition-colors">
+                      <SkipBack className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom"><p>-10s</p></TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <button onClick={() => setPlaying(!playing)}
                 className="h-10 w-10 rounded-full bg-foreground text-background flex items-center justify-center hover:opacity-90 transition-opacity">
                 {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
