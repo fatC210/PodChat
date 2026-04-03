@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Settings, ChevronLeft, Globe, Sun, Moon } from 'lucide-react';
+import { Settings, ChevronLeft, Sun, Moon } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme';
+import logo from '@/assets/logo.png';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { t, lang, setLang } = useI18n();
