@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Upload, Users, User, Play, Check, ChevronRight, ChevronLeft, Volume2, FileAudio, Sparkles, BookOpen, Brain, Mic } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
