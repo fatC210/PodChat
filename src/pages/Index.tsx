@@ -81,6 +81,13 @@ export default function Index() {
                     <h3 className="font-semibold text-foreground text-lg truncate">
                       {podcast.title}
                     </h3>
+                    <span className={`text-[11px] font-medium px-2 py-0.5 rounded-md shrink-0 ${
+                      podcast.status === 'ready'
+                        ? 'bg-success/10 text-success'
+                        : 'bg-accent/10 text-accent'
+                    }`}>
+                      {podcast.status === 'ready' ? t('home.status.ready') : t('home.status.configuring')}
+                    </span>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground ml-[26px]">
                     <span className="flex items-center gap-1">
