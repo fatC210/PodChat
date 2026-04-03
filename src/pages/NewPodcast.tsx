@@ -34,6 +34,20 @@ export default function NewPodcastPage() {
   const [refCount, setRefCount] = useState(2);
   const [host, setHost] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const playTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handlePlay = (speakerId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (playingId === speakerId) {
+      setPlayingId(null);
+      if (playTimerRef.current) clearTimeout(playTimerRef.current);
+      return;
+    }
+    setPlayingId(speakerId);
+    // Mock: stop after 3s
+    playTimerRef.current = setTimeout(() => setPlayingId(null), 3000);
+  };
 
   // Auto-advance through AI steps
   useEffect(() => {
