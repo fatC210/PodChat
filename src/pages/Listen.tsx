@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { MessageCircle, Zap, Play, Pause, SkipBack, SkipForward, Settings, ChevronDown, Languages } from 'lucide-react';
+import { MessageCircle, Zap, Play, Pause, SkipBack, SkipForward, Settings, ChevronDown, Languages, Download } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import FloatingChat from '@/components/FloatingChat';
 
@@ -48,8 +48,52 @@ export default function ListenPage() {
   const [showTranscriptMenu, setShowTranscriptMenu] = useState(false);
   const [targetLang, setTargetLang] = useState('zh');
   const [showLangMenu, setShowLangMenu] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
   const progressRef = useRef<HTMLDivElement>(null);
   const speedRef = useRef<HTMLDivElement>(null);
+
+  const timeToSeconds = (t: string) => {
+    const parts = t.split(':').map(Number);
+    return parts.length === 3 ? parts[0] * 3600 + parts[1] * 60 + parts[2] : parts[0] * 60 + parts[1];
+  };
+
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const fmtSrt = (s: number) => `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)},000`;
+  const fmtVtt = (s: number) => `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}.000`;
+
+  const downloadFile = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportTxt = () => {
+    const content = transcript.map(l => `[${l.time}] ${l.speaker}: ${l.text}`).join('\n\n');
+    downloadFile(content, 'transcript.txt');
+    setShowExportMenu(false);
+  };
+
+  const exportSrt = () => {
+    const content = transcript.map((l, i) => {
+      const start = timeToSeconds(l.time);
+      const end = i < transcript.length - 1 ? timeToSeconds(transcript[i + 1].time) : start + 10;
+      return `${i + 1}\n${fmtSrt(start)} --> ${fmtSrt(end)}\n${l.speaker}: ${l.text}`;
+    }).join('\n\n');
+    downloadFile(content, 'transcript.srt');
+    setShowExportMenu(false);
+  };
+
+  const exportVtt = () => {
+    const lines = transcript.map((l, i) => {
+      const start = timeToSeconds(l.time);
+      const end = i < transcript.length - 1 ? timeToSeconds(transcript[i + 1].time) : start + 10;
+      return `${fmtVtt(start)} --> ${fmtVtt(end)}\n${l.speaker}: ${l.text}`;
+    }).join('\n\n');
+    downloadFile(`WEBVTT\n\n${lines}`, 'transcript.vtt');
+    setShowExportMenu(false);
+  };
 
   useEffect(() => {
     if (!showSpeed) return;
@@ -173,7 +217,23 @@ export default function ListenPage() {
           {/* Transcript */}
           <div className="rounded-2xl bg-card border border-border p-4 max-h-[380px] overflow-y-auto">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{t('listen.transcript')}</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{t('listen.transcript')}</p>
+                {/* Export */}
+                <div className="relative">
+                  <button onClick={() => setShowExportMenu(!showExportMenu)}
+                    className="h-6 w-6 rounded-md text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center">
+                    <Download className="h-3.5 w-3.5" />
+                  </button>
+                  {showExportMenu && (
+                    <div className="absolute top-full mt-1 left-0 bg-card border border-border rounded-xl py-1 shadow-lg min-w-[80px] z-10 animate-scale-in">
+                      <button onClick={exportTxt} className="block w-full px-3 py-1.5 text-[11px] text-left text-foreground hover:bg-secondary transition-colors">.txt</button>
+                      <button onClick={exportSrt} className="block w-full px-3 py-1.5 text-[11px] text-left text-foreground hover:bg-secondary transition-colors">.srt</button>
+                      <button onClick={exportVtt} className="block w-full px-3 py-1.5 text-[11px] text-left text-foreground hover:bg-secondary transition-colors">.vtt</button>
+                    </div>
+                  )}
+                </div>
+              </div>
               <div className="flex items-center gap-1.5">
                 {/* Target language selector - show when not original-only */}
                 {transcriptMode !== 'original' && (
