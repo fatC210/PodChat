@@ -252,43 +252,47 @@ export default function NewPodcastPage() {
                   host === s.id ? 'border-accent bg-accent/5' : 'border-border hover:border-muted-foreground'
                 }`}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <span className="font-semibold text-foreground">{s.name}</span>
-                    <span className="text-[11px] text-muted-foreground">{s.pct}%</span>
-                  </div>
-                  {host === s.id && <div className="h-5 w-5 rounded-full bg-accent flex items-center justify-center"><Check className="h-3 w-3 text-accent-foreground" /></div>}
-                </div>
-                <p className="text-xs text-muted-foreground mb-3">"{s.preview}"</p>
-                <div className="flex items-center gap-2">
-                  <div
-                    onClick={(e) => handlePlay(s.id, e)}
-                    className={`h-8 w-8 rounded-full flex items-center justify-center transition-colors ${
-                      playingId === s.id
-                        ? 'bg-accent text-accent-foreground'
-                        : 'bg-secondary text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {playingId === s.id ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 ml-0.5" />}
-                  </div>
-                  {playingId === s.id && (
-                    <div className="flex items-center gap-[2px] h-4">
-                      {[...Array(12)].map((_, i) => (
-                        <div
-                          key={i}
-                          className="w-[3px] rounded-full bg-accent animate-pulse"
-                          style={{
-                            height: `${Math.random() * 12 + 4}px`,
-                            animationDelay: `${i * 80}ms`,
-                            animationDuration: '0.6s',
-                          }}
-                        />
-                      ))}
+                <div className="flex items-center gap-4">
+                  {/* Left: info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-1">
+                      <span className="font-semibold text-foreground">{s.name}</span>
+                      <span className="text-[11px] text-muted-foreground">{s.pct}%</span>
+                      {host === s.id && <div className="h-5 w-5 rounded-full bg-accent flex items-center justify-center"><Check className="h-3 w-3 text-accent-foreground" /></div>}
                     </div>
-                  )}
-                  {playingId !== s.id && (
-                    <span className="text-[11px] text-muted-foreground">{t('wizard.host.preview')} · {s.duration}</span>
-                  )}
+                    <p className="text-xs text-muted-foreground">"{s.preview}"</p>
+                  </div>
+                  {/* Right: play button */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {playingId === s.id && (
+                      <div className="flex items-center gap-[2px] h-4">
+                        {[...Array(12)].map((_, i) => (
+                          <div
+                            key={i}
+                            className="w-[3px] rounded-full bg-accent animate-pulse"
+                            style={{
+                              height: `${Math.random() * 12 + 4}px`,
+                              animationDelay: `${i * 80}ms`,
+                              animationDuration: '0.6s',
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    {playingId !== s.id && (
+                      <span className="text-[11px] text-muted-foreground">{t('wizard.host.preview')} · {s.duration}</span>
+                    )}
+                    <div
+                      onClick={(e) => handlePlay(s.id, e)}
+                      className={`h-8 w-8 rounded-full flex items-center justify-center transition-colors ${
+                        playingId === s.id
+                          ? 'bg-accent text-accent-foreground'
+                          : 'bg-secondary text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {playingId === s.id ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 ml-0.5" />}
+                    </div>
+                  </div>
                 </div>
               </button>
             ))}
