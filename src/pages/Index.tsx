@@ -1,8 +1,9 @@
-import { Link } from 'react-router-dom';
-import { Plus, Headphones, MessageCircle, Zap, Clock, User, ArrowRight, Radio } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Plus, Clock, User, Radio, Zap, Trash2 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
+import { useState } from 'react';
 
-const mockPodcasts = [
+const initialPodcasts = [
   {
     id: 'demo-1',
     title: 'The Future of AI & Creativity',
@@ -25,6 +26,21 @@ const mockPodcasts = [
 
 export default function Index() {
   const { t } = useI18n();
+  const nav = useNavigate();
+  const [podcasts, setPodcasts] = useState(initialPodcasts);
+
+  const handleDelete = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPodcasts(p => p.filter(x => x.id !== id));
+  };
+
+  const handleCardClick = (podcast: typeof initialPodcasts[0]) => {
+    if (podcast.status === 'ready') {
+      nav(`/podcast/${podcast.id}/listen`);
+    } else {
+      nav('/podcast/new');
+    }
+  };
 
   return (
     <div className="max-w-screen-lg mx-auto px-4 sm:px-6 py-10">
@@ -47,10 +63,11 @@ export default function Index() {
 
       {/* Podcast list */}
       <div className="space-y-4">
-        {mockPodcasts.map((podcast, i) => (
+        {podcasts.map((podcast, i) => (
           <div
             key={podcast.id}
-            className="group relative rounded-2xl bg-card border border-border overflow-hidden hover:border-foreground/10 transition-all duration-300 animate-fade-in"
+            onClick={() => handleCardClick(podcast)}
+            className="group relative rounded-2xl bg-card border border-border overflow-hidden hover:border-foreground/10 transition-all duration-300 animate-fade-in cursor-pointer"
             style={{ animationDelay: `${i * 80}ms` }}
           >
             {/* Subtle gradient strip */}
@@ -80,43 +97,35 @@ export default function Index() {
                   </div>
                 </div>
 
-                <span className={`text-[11px] font-medium px-2 py-0.5 rounded-md ${
-                  podcast.status === 'ready'
-                    ? 'bg-success/10 text-success'
-                    : 'bg-accent/10 text-accent'
-                }`}>
-                  {podcast.status === 'ready' ? t('home.status.ready') : t('home.status.configuring')}
-                </span>
-              </div>
-
-              {podcast.status === 'ready' ? (
-                <div className="flex items-center gap-2 mt-4 ml-[26px]">
-                  {[
-                    { to: `/podcast/${podcast.id}/listen`, icon: Headphones, label: t('home.listen') },
-                    { to: `/podcast/${podcast.id}/listen`, icon: MessageCircle, label: t('home.chat') },
-                    { to: `/podcast/${podcast.id}/summary`, icon: Zap, label: t('home.summary') },
-                  ].map(btn => (
+                <div className="flex items-center gap-2">
+                  {podcast.status === 'ready' && (
                     <Link
-                      key={btn.to}
-                      to={btn.to}
-                      className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-secondary text-secondary-foreground text-xs font-medium hover:bg-surface-hover transition-colors"
+                      to={`/podcast/${podcast.id}/summary`}
+                      onClick={e => e.stopPropagation()}
+                      className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-accent text-accent-foreground text-xs font-semibold hover:opacity-90 transition-all shadow-sm"
                     >
-                      <btn.icon className="h-3 w-3" />
-                      {btn.label}
+                      <Zap className="h-3 w-3" />
+                      {t('home.summary')}
                     </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="mt-4 ml-[26px]">
-                  <Link
-                    to="/podcast/new"
-                    className="inline-flex items-center gap-1 text-xs text-accent font-medium hover:underline"
+                  )}
+
+                  <span className={`text-[11px] font-medium px-2 py-0.5 rounded-md ${
+                    podcast.status === 'ready'
+                      ? 'bg-success/10 text-success'
+                      : 'bg-accent/10 text-accent'
+                  }`}>
+                    {podcast.status === 'ready' ? t('home.status.ready') : t('home.status.configuring')}
+                  </span>
+
+                  <button
+                    onClick={(e) => handleDelete(podcast.id, e)}
+                    className="h-7 w-7 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100"
+                    title={t('common.delete')}
                   >
-                    {t('home.continueSetup')}
-                    <ArrowRight className="h-3 w-3" />
-                  </Link>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         ))}
