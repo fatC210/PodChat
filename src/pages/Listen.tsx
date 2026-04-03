@@ -212,7 +212,7 @@ export default function ListenPage() {
 
             {/* Controls */}
             <div className="flex items-center justify-center gap-5">
-              <button onClick={() => setCurrentTime(prev => Math.max(0, prev - 10))} className="text-muted-foreground hover:text-foreground transition-colors relative">
+              <button onClick={() => setProgress(prev => Math.max(0, prev - (10 / totalDuration) * 100))} className="text-muted-foreground hover:text-foreground transition-colors relative">
                 <RotateCcw className="h-5 w-5" />
                 <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold mt-0.5">10</span>
               </button>
