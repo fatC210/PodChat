@@ -113,14 +113,20 @@ export default function ListenPage() {
     setShowExportMenu(false);
   };
 
+  // Close all menus on outside click
   useEffect(() => {
-    if (!showSpeed) return;
+    const anyOpen = showSpeed || showExportMenu || showTranscriptMenu || showLangMenu;
+    if (!anyOpen) return;
     const handler = (e: MouseEvent) => {
-      if (speedRef.current && !speedRef.current.contains(e.target as Node)) setShowSpeed(false);
+      const t = e.target as Node;
+      if (showSpeed && speedRef.current && !speedRef.current.contains(t)) setShowSpeed(false);
+      if (showExportMenu) setShowExportMenu(false);
+      if (showTranscriptMenu) setShowTranscriptMenu(false);
+      if (showLangMenu) setShowLangMenu(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [showSpeed]);
+  }, [showSpeed, showExportMenu, showTranscriptMenu, showLangMenu]);
 
   const handleProgressClick = (e: React.MouseEvent) => {
     if (!progressRef.current) return;
