@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { MessageCircle, Zap, Play, Pause, SkipBack, SkipForward, Settings, ChevronDown, Languages } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
