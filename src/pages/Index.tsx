@@ -30,7 +30,7 @@ export default function Index() {
     <div className="max-w-screen-lg mx-auto px-4 sm:px-6 py-10">
       {/* Hero */}
       <div className="mb-12">
-        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground leading-[1.1]">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground leading-[1.1]">
           {t('home.title')}
         </h1>
         <p className="text-muted-foreground mt-2 text-[15px]">{t('app.tagline')}</p>
