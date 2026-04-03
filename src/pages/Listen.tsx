@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { MessageCircle, Zap, Play, Pause, SkipBack, SkipForward, Settings, ChevronDown, Languages } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
@@ -37,6 +37,16 @@ export default function ListenPage() {
   const [transcriptMode, setTranscriptMode] = useState<TranscriptMode>('original');
   const [showTranscriptMenu, setShowTranscriptMenu] = useState(false);
   const progressRef = useRef<HTMLDivElement>(null);
+  const speedRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showSpeed) return;
+    const handler = (e: MouseEvent) => {
+      if (speedRef.current && !speedRef.current.contains(e.target as Node)) setShowSpeed(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showSpeed]);
 
   const handleProgressClick = (e: React.MouseEvent) => {
     if (!progressRef.current) return;
@@ -128,7 +138,7 @@ export default function ListenPage() {
               </button>
               <button className="text-muted-foreground hover:text-foreground transition-colors"><SkipForward className="h-4 w-4" /></button>
               {/* Speed selector */}
-              <div className="relative">
+              <div className="relative" ref={speedRef}>
                 <button onClick={() => setShowSpeed(!showSpeed)}
                   className="h-7 px-2.5 rounded-lg bg-secondary text-xs font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
                 >
