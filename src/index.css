@@ -163,8 +163,8 @@
   background: hsl(var(--muted-foreground) / 0.5);
 }
 
-@keyframes waveBar {
+@keyframes waveGrow {
   0% { transform: scaleY(1); }
-  50% { transform: scaleY(0.4); }
+  50% { transform: scaleY(0.45); }
   100% { transform: scaleY(1); }
 }

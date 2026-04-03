@@ -88,11 +88,11 @@ export default function ListenPage() {
                 return (
                   <div
                     key={i}
-                    className={`w-[3px] rounded-full transition-colors duration-200 ${isPlayed ? 'bg-accent' : 'bg-muted-foreground/20'}`}
+                    className={`w-[3px] rounded-t-full transition-colors duration-200 origin-bottom ${isPlayed ? 'bg-accent' : 'bg-muted-foreground/20'}`}
                     style={{
                       height: `${baseH}%`,
                       ...(playing ? {
-                        animation: `waveBar 1.2s ease-in-out infinite alternate`,
+                        animation: `waveGrow 1.2s ease-in-out infinite alternate`,
                         animationDelay: `${-i * 60}ms`,
                       } : {}),
                     }}
