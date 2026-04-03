@@ -95,7 +95,7 @@ export default function SummaryPage() {
     // Simulate generation
     setTimeout(() => {
       setGenerating(false);
-      setActive(segmentsByDuration[d]?.[0]?.id || null);
+      setActive(summaryByDuration[d]?.segments?.[0]?.id || null);
     }, 1500);
   };
 
