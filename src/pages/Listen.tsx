@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { MessageCircle, Play, Pause, SkipBack, SkipForward, Settings, ChevronDown, Languages, Download } from 'lucide-react';
+import { MessageCircle, Play, Pause, RotateCcw, RotateCw, Settings, ChevronDown, Languages, Download } from 'lucide-react';
 import SummaryButton from '@/components/SummaryButton';
 import { useI18n } from '@/lib/i18n';
 import FloatingChat from '@/components/FloatingChat';
