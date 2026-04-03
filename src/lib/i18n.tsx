@@ -244,6 +244,7 @@ const translations = {
     'wizard.cloning': '正在克隆声音...',
     'wizard.analyzing': '正在分析说话风格...',
     'wizard.building': '正在构建知识库...',
+    'wizard.host.preview': '试听',
     'wizard.pill.upload': '上传文件',
     'wizard.pill.type': '选择类型',
     'wizard.pill.speakers': '说话人',
