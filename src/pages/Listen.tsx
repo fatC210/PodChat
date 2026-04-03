@@ -37,9 +37,9 @@ export default function ListenPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-lg font-semibold text-foreground truncate">The Future of AI & Creativity</h1>
         <div className="flex items-center gap-1">
-          <Link to={`/podcast/${id}/chat`} className="h-7 px-2.5 rounded-md bg-secondary text-xs font-medium text-secondary-foreground hover:bg-surface-hover transition-colors inline-flex items-center gap-1">
+          <button onClick={() => setChatOpen(true)} className="h-7 px-2.5 rounded-md bg-secondary text-xs font-medium text-secondary-foreground hover:bg-surface-hover transition-colors inline-flex items-center gap-1">
             <MessageCircle className="h-3 w-3" /> {t('home.chat')}
-          </Link>
+          </button>
           <Link to={`/podcast/${id}/summary`} className="h-7 px-2.5 rounded-md bg-secondary text-xs font-medium text-secondary-foreground hover:bg-surface-hover transition-colors inline-flex items-center gap-1">
             <Zap className="h-3 w-3" /> {t('home.summary')}
           </Link>
