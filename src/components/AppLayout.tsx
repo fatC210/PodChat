@@ -10,13 +10,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const isHome = location.pathname === '/';
 
+  // Determine back link: summary/settings pages go back to listen page
+  const podcastMatch = location.pathname.match(/^\/podcast\/([^/]+)\/(summary|settings)$/);
+  const backTo = podcastMatch ? `/podcast/${podcastMatch[1]}/listen` : '/';
+
   return (
     <div className="min-h-screen bg-background">
       <header className="fixed top-0 left-0 right-0 z-50 glass border-b border-border">
         <div className="max-w-screen-lg mx-auto flex h-12 items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-2">
             {!isHome && (
-              <Link to="/" className="mr-1 text-muted-foreground hover:text-foreground transition-colors">
+              <Link to={backTo} className="mr-1 text-muted-foreground hover:text-foreground transition-colors">
                 <ChevronLeft className="h-4 w-4" />
               </Link>
             )}
