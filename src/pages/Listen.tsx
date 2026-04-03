@@ -50,6 +50,9 @@ export default function ListenPage() {
   const [targetLang, setTargetLang] = useState('zh');
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [speakerFilter, setSpeakerFilter] = useState<string | null>(null);
+
+  const speakers = [...new Set(transcript.map(l => l.speaker))];
   const progressRef = useRef<HTMLDivElement>(null);
   const speedRef = useRef<HTMLDivElement>(null);
   const transcriptContainerRef = useRef<HTMLDivElement>(null);
