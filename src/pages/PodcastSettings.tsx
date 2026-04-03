@@ -1,17 +1,30 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Trash2, Send } from 'lucide-react';
+import { ChevronDown, ChevronUp, FileText, Globe } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
+import { toast } from 'sonner';
+
+const scriptChunks = [
+  { id: 1, text: 'Welcome everyone to today\'s episode! We have a really exciting topic — the intersection of AI and human creativity.' },
+  { id: 2, text: 'Thanks for having me, Alex! I\'ve been thinking about this a lot lately, especially with the recent advances in generative AI.' },
+  { id: 3, text: 'Can AI truly be creative, or is it just remixing what already exists?' },
+  { id: 4, text: 'That\'s the fundamental question. What we call "creativity" in humans is also a form of remixing.' },
+];
+
+const crawledPages = [
+  { id: 1, title: 'AI and Creativity — Stanford HAI', url: 'https://hai.stanford.edu/ai-creativity' },
+  { id: 2, title: 'Generative AI Overview — MIT Tech Review', url: 'https://technologyreview.com/generative-ai' },
+  { id: 3, title: 'The Future of Creative AI — Nature', url: 'https://nature.com/articles/creative-ai' },
+];
 
 export default function PodcastSettingsPage() {
   const { t } = useI18n();
   const { id } = useParams();
-  const [q, setQ] = useState('');
-  const [resp, setResp] = useState('');
+  const [showScripts, setShowScripts] = useState(false);
+  const [showPages, setShowPages] = useState(false);
 
-  const preview = () => {
-    if (!q.trim()) return;
-    setResp("That's a great question! Based on our episode, AI creativity operates through pattern recognition at massive scale. The key insight from Dr. Kim is that emotional resonance doesn't depend on the creator's consciousness.");
+  const autoSave = () => {
+    toast.success(t('settings.saved'));
   };
 
   return (
@@ -31,54 +44,67 @@ export default function PodcastSettingsPage() {
             ].map(f => (
               <div key={f.l}>
                 <label className="text-xs text-muted-foreground mb-1 block">{f.l}</label>
-                <textarea defaultValue={f.v} rows={2}
+                <textarea defaultValue={f.v} rows={2} onBlur={autoSave}
                   className="w-full px-3 py-2 rounded-lg bg-secondary text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent resize-none" />
               </div>
             ))}
           </div>
         </section>
 
-        {/* Knowledge */}
+        {/* Knowledge Base */}
         <section>
           <h3 className="text-sm font-semibold text-foreground mb-3">{t('podSettings.knowledgeBase')}</h3>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="p-4 rounded-xl bg-card border border-border text-center">
-              <p className="text-2xl font-bold text-accent">24</p>
-              <p className="text-[11px] text-muted-foreground">{t('podSettings.scriptChunks')}</p>
-            </div>
-            <div className="p-4 rounded-xl bg-card border border-border text-center">
-              <p className="text-2xl font-bold text-accent">8</p>
-              <p className="text-[11px] text-muted-foreground">{t('podSettings.crawledPages')}</p>
-            </div>
-          </div>
-        </section>
 
-        {/* Preview */}
-        <section>
-          <h3 className="text-sm font-semibold text-foreground mb-3">{t('podSettings.previewChat')}</h3>
-          <div className="flex gap-2">
-            <input value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => e.key === 'Enter' && preview()}
-              placeholder="Ask a test question..."
-              className="flex-1 h-9 px-3 rounded-lg bg-secondary text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-accent" />
-            <button onClick={preview}
-              className="h-9 w-9 rounded-lg bg-foreground text-background flex items-center justify-center hover:opacity-90 transition-opacity">
-              <Send className="h-3.5 w-3.5" />
+          {/* Script Chunks */}
+          <div className="mb-2">
+            <button
+              onClick={() => setShowScripts(!showScripts)}
+              className="w-full flex items-center justify-between p-3 rounded-xl bg-card border border-border hover:bg-secondary/50 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-accent" />
+                <span className="text-sm font-medium text-foreground">{t('podSettings.scriptChunks')}</span>
+                <span className="text-xs text-muted-foreground">({scriptChunks.length})</span>
+              </div>
+              {showScripts ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
             </button>
+            {showScripts && (
+              <div className="mt-1 space-y-1 animate-fade-in">
+                {scriptChunks.map(c => (
+                  <div key={c.id} className="px-3 py-2 rounded-lg bg-secondary/50 text-xs text-foreground leading-relaxed">
+                    <span className="text-muted-foreground mr-1.5">#{c.id}</span>{c.text}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-          {resp && <div className="mt-2 p-3 rounded-xl bg-card border border-border text-[13px] text-foreground leading-relaxed animate-fade-in">{resp}</div>}
-        </section>
 
-        {/* Danger */}
-        <section className="pt-4 border-t border-border">
-          <h3 className="text-sm font-semibold text-destructive mb-2">{t('podSettings.dangerZone')}</h3>
-          <button className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-destructive/10 text-destructive text-xs font-medium hover:bg-destructive/20 transition-colors">
-            <Trash2 className="h-3 w-3" /> {t('podSettings.deletePodcast')}
-          </button>
+          {/* Crawled Pages */}
+          <div>
+            <button
+              onClick={() => setShowPages(!showPages)}
+              className="w-full flex items-center justify-between p-3 rounded-xl bg-card border border-border hover:bg-secondary/50 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Globe className="h-4 w-4 text-accent" />
+                <span className="text-sm font-medium text-foreground">{t('podSettings.crawledPages')}</span>
+                <span className="text-xs text-muted-foreground">({crawledPages.length})</span>
+              </div>
+              {showPages ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            </button>
+            {showPages && (
+              <div className="mt-1 space-y-1 animate-fade-in">
+                {crawledPages.map(p => (
+                  <a key={p.id} href={p.url} target="_blank" rel="noopener noreferrer"
+                    className="block px-3 py-2 rounded-lg bg-secondary/50 text-xs text-foreground hover:bg-secondary transition-colors">
+                    <span className="text-muted-foreground mr-1.5">#{p.id}</span>
+                    <span className="text-accent underline underline-offset-2">{p.title}</span>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
         </section>
-
-        <button className="w-full h-10 rounded-lg bg-foreground text-background font-medium text-sm hover:opacity-90 transition-opacity">
-          {t('common.save')}
-        </button>
       </div>
     </div>
   );
