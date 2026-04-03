@@ -25,7 +25,7 @@ function KeyInput({ id, label, placeholder, value, onChange, show, onToggle, onT
             value={value}
             onChange={onChange}
             placeholder={placeholder}
-            className="w-full h-9 px-3 pr-8 rounded-lg bg-secondary border-0 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-accent"
+            className="w-full h-9 px-3 pr-8 rounded-lg bg-secondary border-0 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
           />
           <button onClick={onToggle} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
             {show ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
@@ -66,7 +66,7 @@ export default function SettingsPage() {
             {(['dark', 'light'] as const).map(th => (
               <button key={th} onClick={() => setTheme(th)}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                  theme === th ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
+                  theme === th ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'
                 }`}
               >
                 {th === 'dark' ? <Moon className="h-3 w-3" /> : <Sun className="h-3 w-3" />}
@@ -81,7 +81,7 @@ export default function SettingsPage() {
             {(['en', 'zh'] as const).map(l => (
               <button key={l} onClick={() => setLang(l)}
                 className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                  lang === l ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
+                  lang === l ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'
                 }`}
               >
                 {l === 'en' ? 'English' : '中文'}
@@ -130,7 +130,7 @@ export default function SettingsPage() {
           <div>
             <label className="text-xs text-muted-foreground mb-1.5 block">{t('settings.baseUrl')}</label>
             <input value={keys.llmUrl} onChange={e => setKeys(p => ({ ...p, llmUrl: e.target.value }))} placeholder="https://api.openai.com/v1"
-              className="w-full h-9 px-3 rounded-lg bg-secondary border-0 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-accent" />
+              className="w-full h-9 px-3 rounded-lg bg-secondary border-0 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
           </div>
           <KeyInput id="llmKey" label={t('settings.apiKey')} placeholder="sk-..."
             value={keys.llmKey} onChange={e => setKeys(p => ({ ...p, llmKey: e.target.value }))}
@@ -138,11 +138,11 @@ export default function SettingsPage() {
           <div>
             <label className="text-xs text-muted-foreground mb-1.5 block">{t('settings.modelName')}</label>
             <input value={keys.llmModel} onChange={e => setKeys(p => ({ ...p, llmModel: e.target.value }))} placeholder="gpt-4o"
-              className="w-full h-9 px-3 rounded-lg bg-secondary border-0 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-accent" />
+              className="w-full h-9 px-3 rounded-lg bg-secondary border-0 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
           </div>
         </div>
 
-        <button className="w-full h-10 rounded-lg bg-foreground text-background font-medium text-sm hover:opacity-90 transition-opacity">
+        <button className="w-full h-10 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:opacity-90 transition-opacity">
           {t('common.save')}
         </button>
       </div>
