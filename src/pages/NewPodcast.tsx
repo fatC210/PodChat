@@ -127,7 +127,7 @@ export default function NewPodcastPage() {
       </div>
 
       {/* Content */}
-      <div className="min-h-[340px] animate-fade-in">
+      <div className="animate-fade-in">
         {step === 0 && (
           <label
             className={`flex flex-col items-center justify-center h-60 rounded-2xl border-2 border-dashed cursor-pointer transition-all ${
