@@ -138,6 +138,14 @@ export default function SummaryPage() {
         </div>
       ) : segments.length > 0 ? (
         <div className="space-y-4 animate-fade-in">
+          {/* Overall emotion badge */}
+          {overallEmotion && (
+            <div className="flex items-center gap-2">
+              <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${emotions[overallEmotion]}`}>
+                {t(`summary.emotions.${overallEmotion}` as any)}
+              </span>
+            </div>
+          )}
           {/* Segments */}
           <div className="space-y-2">
             {segments.map(seg => (
@@ -147,9 +155,6 @@ export default function SummaryPage() {
                 }`}>
                 <div className="flex items-center gap-2 mb-1.5">
                   <span className="text-[11px] font-semibold text-foreground">{seg.label}</span>
-                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${emotions[seg.emotion]}`}>
-                    {t(`summary.emotions.${seg.emotion}` as any)}
-                  </span>
                 </div>
                 <p className="text-[13px] text-foreground/80 leading-relaxed">{seg.text}</p>
               </button>
