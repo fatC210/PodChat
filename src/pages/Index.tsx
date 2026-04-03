@@ -8,7 +8,7 @@ const initialPodcasts = [
     id: 'demo-1',
     title: 'The Future of AI & Creativity',
     duration: '45:23',
-    created: 'Apr 1',
+    created: new Date(2026, 3, 1),
     aiHost: 'Alex Chen',
     status: 'ready' as const,
     color: 'from-primary/15 to-accent/10',
@@ -17,7 +17,7 @@ const initialPodcasts = [
     id: 'demo-2',
     title: 'Deep Dive: Quantum Computing Explained',
     duration: '1:20:05',
-    created: 'Mar 28',
+    created: new Date(2026, 2, 28),
     aiHost: null,
     status: 'configuring' as const,
     color: 'from-accent/15 to-primary/10',
@@ -25,7 +25,7 @@ const initialPodcasts = [
 ];
 
 export default function Index() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const nav = useNavigate();
   const [podcasts, setPodcasts] = useState(initialPodcasts);
 
@@ -94,7 +94,7 @@ export default function Index() {
                       <Clock className="h-3 w-3" />
                       {podcast.duration}
                     </span>
-                    <span>{podcast.created}</span>
+                    <span>{podcast.created.toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US', { month: 'short', day: 'numeric' })}</span>
                     {podcast.aiHost && (
                       <span className="flex items-center gap-1">
                         <User className="h-3 w-3" />
