@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { Play, Pause, ChevronDown } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
