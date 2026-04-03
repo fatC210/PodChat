@@ -1,19 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Upload, Users, User, Play, Check, ChevronRight, ChevronLeft, Volume2, FileAudio, Sparkles, BookOpen, Brain, Mic } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 
-const STEPS = [
-  { key: 'step1', icon: Upload, labelKey: 'wizard.pill.upload' },
-  { key: 'step2', icon: Users, labelKey: 'wizard.pill.type' },
-  { key: 'step3', icon: Mic, labelKey: 'wizard.pill.speakers' },
-  { key: 'step4', icon: FileAudio, labelKey: 'wizard.pill.script' },
-  { key: 'step5', icon: User, labelKey: 'wizard.pill.host' },
-  { key: 'step6', icon: Volume2, labelKey: 'wizard.pill.clone' },
-  { key: 'step7', icon: Sparkles, labelKey: 'wizard.pill.voice' },
-  { key: 'step8', icon: BookOpen, labelKey: 'wizard.pill.knowledge' },
-  { key: 'step9', icon: Brain, labelKey: 'wizard.pill.persona' },
+// All internal steps (0-8)
+const ALL_STEPS = [
+  { key: 'step1', icon: Upload, labelKey: 'wizard.pill.upload', userStep: true },
+  { key: 'step2', icon: Users, labelKey: 'wizard.pill.type', userStep: true },
+  { key: 'step3', icon: Mic, labelKey: 'wizard.pill.speakers', userStep: false },
+  { key: 'step4', icon: FileAudio, labelKey: 'wizard.pill.script', userStep: false },
+  { key: 'step5', icon: User, labelKey: 'wizard.pill.host', userStep: true },
+  { key: 'step6', icon: Volume2, labelKey: 'wizard.pill.clone', userStep: false },
+  { key: 'step7', icon: Sparkles, labelKey: 'wizard.pill.voice', userStep: false },
+  { key: 'step8', icon: BookOpen, labelKey: 'wizard.pill.knowledge', userStep: false },
+  { key: 'step9', icon: Brain, labelKey: 'wizard.pill.persona', userStep: true },
 ];
+
+// Only user-facing steps for the pill progress
+const USER_STEPS = ALL_STEPS
+  .map((s, i) => ({ ...s, internalIndex: i }))
+  .filter(s => s.userStep);
 
 const mockSpeakers = [
   { id: 's1', name: 'Speaker 1', pct: 62, preview: 'Welcome everyone to today\'s episode...' },
@@ -23,47 +29,85 @@ const mockSpeakers = [
 export default function NewPodcastPage() {
   const { t } = useI18n();
   const nav = useNavigate();
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(0); // internal step index (0-8)
   const [type, setType] = useState<'solo' | 'multi'>('solo');
   const [refCount, setRefCount] = useState(2);
   const [host, setHost] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
 
+  // Auto-advance through AI steps
+  useEffect(() => {
+    if (!ALL_STEPS[step].userStep) {
+      const timer = setTimeout(() => {
+        if (step < ALL_STEPS.length - 1) setStep(step + 1);
+      }, 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [step]);
+
   const canNext = step === 0 ? !!file : step === 4 ? !!host : true;
+
+  // Find which user step we're on (or between)
+  const currentUserStepIdx = (() => {
+    for (let i = USER_STEPS.length - 1; i >= 0; i--) {
+      if (step >= USER_STEPS[i].internalIndex) return i;
+    }
+    return 0;
+  })();
+
+  const handleNext = () => {
+    if (!canNext) return;
+    if (step < ALL_STEPS.length - 1) setStep(step + 1);
+  };
+
+  const handlePrev = () => {
+    // Jump back to previous user step
+    const prevUserStep = USER_STEPS.findLast(s => s.internalIndex < step);
+    if (prevUserStep) setStep(prevUserStep.internalIndex);
+  };
+
+  const handlePillClick = (userIdx: number) => {
+    const target = USER_STEPS[userIdx].internalIndex;
+    if (target <= step) setStep(target);
+  };
+
+  const isOnAiStep = !ALL_STEPS[step].userStep;
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
       <h1 className="text-2xl font-bold text-foreground mb-6">{t('wizard.title')}</h1>
 
-      {/* Progress — pill tabs */}
-      <div className="flex items-center gap-2 mb-2 overflow-x-auto pb-2 scrollbar-hide">
-        {STEPS.map((s, i) => (
+      {/* Progress — simplified pill tabs (user steps only) */}
+      <div className="flex items-center gap-2 mb-8">
+        {USER_STEPS.map((s, i) => (
           <button
             key={s.key}
-            onClick={() => i <= step && setStep(i)}
-            disabled={i > step}
+            onClick={() => handlePillClick(i)}
+            disabled={s.internalIndex > step}
             className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap border transition-all ${
-              i === step
+              i === currentUserStepIdx && !isOnAiStep
                 ? 'bg-accent text-accent-foreground border-accent shadow-sm'
-                : i < step
+                : i === currentUserStepIdx && isOnAiStep
+                ? 'bg-accent/50 text-accent-foreground border-accent/50'
+                : i < currentUserStepIdx
                 ? 'bg-secondary text-foreground border-border cursor-pointer hover:border-accent/50'
                 : 'bg-secondary/50 text-muted-foreground border-border opacity-60'
             }`}
           >
-            <s.icon className="h-3.5 w-3.5" />
+            {i < currentUserStepIdx ? (
+              <Check className="h-3.5 w-3.5 text-accent" />
+            ) : (
+              <s.icon className="h-3.5 w-3.5" />
+            )}
             {t(s.labelKey as any)}
           </button>
         ))}
       </div>
-      {/* Progress bar */}
-      <div className="h-1 bg-secondary rounded-full mb-8 overflow-hidden">
-        <div className="h-full bg-accent rounded-full transition-all duration-300" style={{ width: `${((step + 1) / STEPS.length) * 100}%` }} />
-      </div>
 
       {/* Step label */}
       <div className="mb-6">
-        <p className="text-sm font-semibold text-foreground">{t(`wizard.${STEPS[step].key}` as any)}</p>
-        <p className="text-xs text-muted-foreground">{t(`wizard.${STEPS[step].key}Desc` as any)}</p>
+        <p className="text-sm font-semibold text-foreground">{t(`wizard.${ALL_STEPS[step].key}` as any)}</p>
+        <p className="text-xs text-muted-foreground">{t(`wizard.${ALL_STEPS[step].key}Desc` as any)}</p>
       </div>
 
       {/* Content */}
@@ -119,42 +163,18 @@ export default function NewPodcastPage() {
           </div>
         )}
 
-        {step === 2 && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-accent/10">
-              <Check className="h-4 w-4 text-accent" />
-              <span className="text-sm font-medium text-foreground">{t('wizard.detected', { count: '2' })}</span>
+        {/* AI steps 2-3: speakers & script (auto-advance) */}
+        {(step === 2 || step === 3) && (
+          <div className="flex flex-col items-center py-16">
+            <div className="h-14 w-14 rounded-2xl bg-accent/10 flex items-center justify-center mb-4 animate-pulse">
+              {step === 2 ? <Mic className="h-7 w-7 text-accent" /> : <FileAudio className="h-7 w-7 text-accent" />}
             </div>
-            {mockSpeakers.map(s => (
-              <div key={s.id} className="p-4 rounded-xl bg-card border border-border flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-foreground">{s.name}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{s.pct}% of audio</p>
-                </div>
-                <button className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-                  <Play className="h-3 w-3 ml-0.5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className="rounded-2xl bg-card border border-border p-4 space-y-3 max-h-72 overflow-y-auto">
-            {[
-              { s: 'Speaker 1', t: '00:15', text: 'Welcome everyone to today\'s episode. We have a fantastic topic — the intersection of AI and human creativity.' },
-              { s: 'Speaker 2', t: '00:32', text: 'Thanks for having me! I\'ve been thinking about this a lot lately, especially with generative AI advances.' },
-              { s: 'Speaker 1', t: '01:05', text: 'Let\'s dive right in. Can AI truly be creative, or is it just remixing what already exists?' },
-              { s: 'Speaker 2', t: '01:28', text: 'That\'s the fundamental question. Human creativity is also remixing — we\'re influenced by everything we\'ve experienced.' },
-            ].map((line, i) => (
-              <div key={i} className="hover:bg-secondary/50 -mx-1 px-1 py-1 rounded-lg transition-colors cursor-pointer">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="font-mono text-[10px] text-muted-foreground">{line.t}</span>
-                  <span className={`text-xs font-semibold ${i % 2 === 0 ? 'text-accent' : 'text-info'}`}>{line.s}</span>
-                </div>
-                <p className="text-sm text-foreground leading-relaxed">{line.text}</p>
-              </div>
-            ))}
+            <p className="text-sm font-medium text-foreground">
+              {step === 2 ? t('wizard.detecting') : t('wizard.generating')}
+            </p>
+            <div className="w-32 h-1 bg-secondary rounded-full mt-3 overflow-hidden">
+              <div className="h-full bg-accent rounded-full animate-pulse" style={{ width: '70%' }} />
+            </div>
           </div>
         )}
 
@@ -171,55 +191,25 @@ export default function NewPodcastPage() {
                   {host === s.id && <div className="h-5 w-5 rounded-full bg-accent flex items-center justify-center"><Check className="h-3 w-3 text-accent-foreground" /></div>}
                 </div>
                 <p className="text-xs text-muted-foreground">"{s.preview}"</p>
+                <p className="text-xs text-muted-foreground mt-1">{s.pct}% of audio</p>
               </button>
             ))}
           </div>
         )}
 
-        {step === 5 && (
-          <div className="flex flex-col items-center py-12">
-            <div className="h-16 w-16 rounded-2xl bg-accent/10 flex items-center justify-center mb-4">
-              <Volume2 className="h-8 w-8 text-accent" />
+        {/* AI steps 5-7: clone, voice, knowledge (auto-advance) */}
+        {(step === 5 || step === 6 || step === 7) && (
+          <div className="flex flex-col items-center py-16">
+            <div className="h-14 w-14 rounded-2xl bg-accent/10 flex items-center justify-center mb-4 animate-pulse">
+              {step === 5 ? <Volume2 className="h-7 w-7 text-accent" /> :
+               step === 6 ? <Sparkles className="h-7 w-7 text-accent" /> :
+               <BookOpen className="h-7 w-7 text-accent" />}
             </div>
-            <p className="text-sm font-medium text-foreground">{t('wizard.cloning')}</p>
-            <div className="w-40 h-1 bg-secondary rounded-full mt-3 overflow-hidden">
-              <div className="h-full w-2/3 bg-accent rounded-full" style={{ animation: 'pulse 2s ease-in-out infinite' }} />
-            </div>
-          </div>
-        )}
-
-        {step === 6 && (
-          <div className="space-y-3">
-            <div className="p-4 rounded-xl bg-accent/10 flex items-center gap-3">
-              <Sparkles className="h-4 w-4 text-accent" />
-              <div>
-                <p className="text-sm font-medium text-foreground">Energetic & Expressive</p>
-                <p className="text-xs text-muted-foreground">Fast-paced, warm, high similarity</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {[{ l: 'Stability', v: 42 }, { l: 'Similarity', v: 78 }, { l: 'Style', v: 65 }, { l: 'Speed', v: 72 }].map(p => (
-                <div key={p.l} className="p-3 rounded-xl bg-card border border-border">
-                  <div className="flex justify-between text-xs mb-1.5">
-                    <span className="text-muted-foreground">{p.l}</span>
-                    <span className="font-mono text-foreground">{p.v}</span>
-                  </div>
-                  <div className="h-1 bg-secondary rounded-full"><div className="h-full bg-accent rounded-full" style={{ width: `${p.v}%` }} /></div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {step === 7 && (
-          <div className="space-y-3">
-            <div className="grid grid-cols-3 gap-2">
-              {[{ l: 'Chunks', v: '24' }, { l: 'Pages', v: '8' }, { l: 'Entries', v: '156' }].map(s => (
-                <div key={s.l} className="p-4 rounded-xl bg-card border border-border text-center">
-                  <p className="text-2xl font-bold text-accent">{s.v}</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">{s.l}</p>
-                </div>
-              ))}
+            <p className="text-sm font-medium text-foreground">
+              {step === 5 ? t('wizard.cloning') : step === 6 ? t('wizard.analyzing') : t('wizard.building')}
+            </p>
+            <div className="w-32 h-1 bg-secondary rounded-full mt-3 overflow-hidden">
+              <div className="h-full bg-accent rounded-full animate-pulse" style={{ width: '70%' }} />
             </div>
           </div>
         )}
@@ -241,24 +231,26 @@ export default function NewPodcastPage() {
         )}
       </div>
 
-      {/* Navigation */}
-      <div className="flex items-center justify-between mt-8 pt-6 border-t border-border">
-        <button onClick={() => step > 0 && setStep(step - 1)} disabled={step === 0}
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-0 transition-all">
-          <ChevronLeft className="h-4 w-4" /> {t('common.previous')}
-        </button>
-        {step < STEPS.length - 1 ? (
-          <button onClick={() => canNext && setStep(step + 1)} disabled={!canNext}
-            className="inline-flex items-center gap-1 h-9 px-5 rounded-lg bg-foreground text-background text-sm font-medium disabled:opacity-30 hover:opacity-90 transition-opacity">
-            {t('common.next')} <ChevronRight className="h-4 w-4" />
+      {/* Navigation — hide during AI steps */}
+      {!isOnAiStep && (
+        <div className="flex items-center justify-between mt-8 pt-6 border-t border-border">
+          <button onClick={handlePrev} disabled={step === 0}
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-0 transition-all">
+            <ChevronLeft className="h-4 w-4" /> {t('common.previous')}
           </button>
-        ) : (
-          <button onClick={() => nav('/podcast/demo-1/listen')}
-            className="inline-flex items-center gap-1 h-9 px-5 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:opacity-90 transition-opacity">
-            {t('common.confirm')} <Check className="h-4 w-4" />
-          </button>
-        )}
-      </div>
+          {step < ALL_STEPS.length - 1 ? (
+            <button onClick={handleNext} disabled={!canNext}
+              className="inline-flex items-center gap-1 h-9 px-5 rounded-lg bg-foreground text-background text-sm font-medium disabled:opacity-30 hover:opacity-90 transition-opacity">
+              {t('common.next')} <ChevronRight className="h-4 w-4" />
+            </button>
+          ) : (
+            <button onClick={() => nav('/podcast/demo-1/listen')}
+              className="inline-flex items-center gap-1 h-9 px-5 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:opacity-90 transition-opacity">
+              {t('common.confirm')} <Check className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
