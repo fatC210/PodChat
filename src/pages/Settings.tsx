@@ -81,7 +81,7 @@ export default function SettingsPage() {
             {(['en', 'zh'] as const).map(l => (
               <button key={l} onClick={() => setLang(l)}
                 className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                  lang === l ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
+                  lang === l ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'
                 }`}
               >
                 {l === 'en' ? 'English' : '中文'}
