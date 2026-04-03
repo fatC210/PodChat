@@ -81,17 +81,20 @@ export default function ListenPage() {
           {/* Player */}
           <div className="rounded-2xl bg-card border border-border p-4">
             {/* Waveform visualization */}
-            <div className="flex items-center justify-center gap-[2px] h-12 mb-3">
-              {Array.from({ length: 48 }).map((_, i) => {
-                const isPlayed = (i / 48) * 100 < progress;
+            <div className="flex items-end justify-center gap-[3px] h-14 mb-3">
+              {Array.from({ length: 40 }).map((_, i) => {
+                const isPlayed = (i / 40) * 100 < progress;
+                const baseH = 20 + Math.sin(i * 0.6) * 14 + Math.cos(i * 0.3) * 8;
                 return (
                   <div
                     key={i}
-                    className={`w-[2px] rounded-full transition-colors ${isPlayed ? 'bg-accent' : 'bg-muted-foreground/20'}`}
+                    className={`w-[3px] rounded-full transition-colors duration-200 ${isPlayed ? 'bg-accent' : 'bg-muted-foreground/20'}`}
                     style={{
-                      height: `${8 + Math.sin(i * 0.5) * 12 + Math.random() * 10}px`,
-                      animation: playing ? `pulse ${0.6 + Math.random() * 0.8}s ease-in-out infinite` : 'none',
-                      animationDelay: `${i * 40}ms`,
+                      height: `${baseH}%`,
+                      ...(playing ? {
+                        animation: `waveBar 1.2s ease-in-out infinite alternate`,
+                        animationDelay: `${-i * 60}ms`,
+                      } : {}),
                     }}
                   />
                 );
