@@ -26,8 +26,40 @@ const mockSpeakers = [
   { id: 's2', name: 'Speaker 2', pct: 38, preview: 'Thanks for having me here today...', duration: '0:08' },
 ];
 
+// Persona presets
+const PERSONA_PRESETS = [
+  {
+    id: 'enthusiastic',
+    labelKey: 'wizard.persona.enthusiastic',
+    personality: { en: 'Enthusiastic, energetic, uses vivid language', zh: '热情洋溢、充满活力、语言生动形象' },
+    catchphrases: { en: '"That\'s amazing!", "Let me tell you why this matters"', zh: '"太棒了！"、"让我告诉你为什么这很重要"' },
+    answerStyle: { en: 'Hook → storytelling → takeaway', zh: '悬念开场 → 故事叙述 → 要点总结' },
+  },
+  {
+    id: 'analytical',
+    labelKey: 'wizard.persona.analytical',
+    personality: { en: 'Calm, analytical, uses data and analogies', zh: '冷静理性、善于分析、常用数据和类比' },
+    catchphrases: { en: '"Let me break this down", "The data shows..."', zh: '"让我拆解一下"、"数据显示……"' },
+    answerStyle: { en: 'Definition → analysis → conclusion', zh: '定义概念 → 深入分析 → 得出结论' },
+  },
+  {
+    id: 'humorous',
+    labelKey: 'wizard.persona.humorous',
+    personality: { en: 'Witty, humorous, relatable storytelling', zh: '风趣幽默、擅长段子、讲述接地气' },
+    catchphrases: { en: '"Here\'s the funny part", "You won\'t believe this"', zh: '"搞笑的来了"、"你绝对想不到"' },
+    answerStyle: { en: 'Joke/anecdote → insight → punchline', zh: '段子/趣事 → 引出观点 → 金句收尾' },
+  },
+  {
+    id: 'professional',
+    labelKey: 'wizard.persona.professional',
+    personality: { en: 'Professional, structured, authoritative', zh: '专业严谨、条理清晰、权威可信' },
+    catchphrases: { en: '"According to research", "The key point is"', zh: '"根据研究表明"、"关键在于"' },
+    answerStyle: { en: 'Context → key points → summary', zh: '背景铺垫 → 核心要点 → 精炼总结' },
+  },
+];
+
 export default function NewPodcastPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const nav = useNavigate();
   const [step, setStep] = useState(0); // internal step index (0-8)
   const [type, setType] = useState<'solo' | 'multi'>('solo');
@@ -36,6 +68,10 @@ export default function NewPodcastPage() {
   const [file, setFile] = useState<File | null>(null);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const playTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [selectedPreset, setSelectedPreset] = useState<string>('enthusiastic');
+  const [customPersonality, setCustomPersonality] = useState('');
+  const [customCatchphrases, setCustomCatchphrases] = useState('');
+  const [customAnswerStyle, setCustomAnswerStyle] = useState('');
 
   const handlePlay = (speakerId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -277,18 +313,60 @@ export default function NewPodcastPage() {
         )}
 
         {step === 8 && (
-          <div className="space-y-3">
-            {[
-              { l: t('podSettings.personality'), v: 'Enthusiastic, analytical, uses analogies' },
-              { l: t('podSettings.catchphrases'), v: '"That\'s a great point", "Let me break this down"' },
-              { l: t('podSettings.answerStyle'), v: 'Hook → examples → summary' },
-            ].map(f => (
-              <div key={f.l}>
-                <label className="text-xs text-muted-foreground mb-1 block">{f.l}</label>
-                <textarea defaultValue={f.v} rows={2}
-                  className="w-full px-3 py-2 rounded-lg bg-secondary text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent resize-none" />
+          <div className="space-y-5">
+            {/* Preset grid */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-2 block">{t('wizard.persona.selectPreset')}</label>
+              <div className="grid grid-cols-2 gap-2">
+                {PERSONA_PRESETS.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => setSelectedPreset(p.id)}
+                    className={`p-3 rounded-xl border-2 text-left transition-all ${
+                      selectedPreset === p.id
+                        ? 'border-accent bg-accent/5'
+                        : 'border-border hover:border-muted-foreground'
+                    }`}
+                  >
+                    <p className="text-sm font-medium text-foreground">{t(p.labelKey as any)}</p>
+                    <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2">{p.personality[lang]}</p>
+                  </button>
+                ))}
               </div>
-            ))}
+            </div>
+
+            {/* Preview of selected preset */}
+            {selectedPreset && (() => {
+              const preset = PERSONA_PRESETS.find(p => p.id === selectedPreset)!;
+              return (
+                <div className="space-y-2 rounded-xl bg-secondary/50 p-4">
+                  <div>
+                    <span className="text-[11px] font-medium text-muted-foreground">{t('podSettings.personality')}</span>
+                    <p className="text-sm text-foreground">{preset.personality[lang]}</p>
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-medium text-muted-foreground">{t('podSettings.catchphrases')}</span>
+                    <p className="text-sm text-foreground">{preset.catchphrases[lang]}</p>
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-medium text-muted-foreground">{t('podSettings.answerStyle')}</span>
+                    <p className="text-sm text-foreground">{preset.answerStyle[lang]}</p>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Custom overrides */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-2 block">{t('wizard.persona.customLabel')}</label>
+              <textarea
+                value={customPersonality}
+                onChange={e => setCustomPersonality(e.target.value)}
+                placeholder={t('wizard.persona.customPlaceholder')}
+                rows={3}
+                className="w-full px-3 py-2 rounded-lg bg-secondary text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent resize-none"
+              />
+            </div>
           </div>
         )}
       </div>
