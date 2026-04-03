@@ -55,6 +55,7 @@ export default function FloatingChat({ open, onClose }: FloatingChatProps) {
   const [waiting, setWaiting] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const endRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Call timer
   useEffect(() => {
