@@ -35,20 +35,29 @@ export default function NewPodcastPage() {
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
       <h1 className="text-2xl font-bold text-foreground mb-6">{t('wizard.title')}</h1>
 
-      {/* Progress — pill style */}
-      <div className="flex items-center gap-1.5 mb-8">
+      {/* Progress — pill tabs */}
+      <div className="flex items-center gap-2 mb-2 overflow-x-auto pb-2 scrollbar-hide">
         {STEPS.map((s, i) => (
           <button
             key={s.key}
-            onClick={() => i < step && setStep(i)}
+            onClick={() => i <= step && setStep(i)}
             disabled={i > step}
-            className={`flex-1 h-1.5 rounded-full transition-all ${
-              i <= step
-                ? 'bg-accent'
-                : 'bg-secondary'
-            } ${i < step ? 'cursor-pointer hover:bg-accent/80' : ''}`}
-          />
+            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap border transition-all ${
+              i === step
+                ? 'bg-accent text-accent-foreground border-accent shadow-sm'
+                : i < step
+                ? 'bg-secondary text-foreground border-border cursor-pointer hover:border-accent/50'
+                : 'bg-secondary/50 text-muted-foreground border-border opacity-60'
+            }`}
+          >
+            <s.icon className="h-3.5 w-3.5" />
+            {s.label}
+          </button>
         ))}
+      </div>
+      {/* Progress bar */}
+      <div className="h-1 bg-secondary rounded-full mb-8 overflow-hidden">
+        <div className="h-full bg-accent rounded-full transition-all duration-300" style={{ width: `${((step + 1) / STEPS.length) * 100}%` }} />
       </div>
 
       {/* Step label */}
