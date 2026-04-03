@@ -93,7 +93,9 @@ export default function FloatingChat({ open, onClose }: FloatingChatProps) {
   if (!open) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 w-[340px] sm:w-[380px] h-[480px] flex flex-col rounded-2xl bg-card border border-accent/40 shadow-2xl shadow-accent/10 overflow-hidden animate-scale-in">
+    <>
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <div className="fixed bottom-4 right-4 z-50 w-[340px] sm:w-[380px] h-[480px] flex flex-col rounded-2xl bg-card border border-accent/40 shadow-2xl shadow-accent/10 overflow-hidden animate-scale-in">
       {/* Header - live call style */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-accent/5 shrink-0">
         <div className="flex items-center gap-2.5">
@@ -190,6 +192,7 @@ export default function FloatingChat({ open, onClose }: FloatingChatProps) {
           </button>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
