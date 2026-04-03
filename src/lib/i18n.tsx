@@ -126,6 +126,7 @@ const translations = {
     'chat.orType': 'or type a message',
     'chat.endChat': 'End Chat',
     'chat.greeting': 'You were just listening to the part about {topic}. What would you like to ask?',
+    'chat.newSession': 'New Session',
 
     // Summary Mode
     'summary.title': 'Quick Summary',
