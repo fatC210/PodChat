@@ -313,18 +313,60 @@ export default function NewPodcastPage() {
         )}
 
         {step === 8 && (
-          <div className="space-y-3">
-            {[
-              { l: t('podSettings.personality'), v: 'Enthusiastic, analytical, uses analogies' },
-              { l: t('podSettings.catchphrases'), v: '"That\'s a great point", "Let me break this down"' },
-              { l: t('podSettings.answerStyle'), v: 'Hook → examples → summary' },
-            ].map(f => (
-              <div key={f.l}>
-                <label className="text-xs text-muted-foreground mb-1 block">{f.l}</label>
-                <textarea defaultValue={f.v} rows={2}
-                  className="w-full px-3 py-2 rounded-lg bg-secondary text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent resize-none" />
+          <div className="space-y-5">
+            {/* Preset grid */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-2 block">{t('wizard.persona.selectPreset')}</label>
+              <div className="grid grid-cols-2 gap-2">
+                {PERSONA_PRESETS.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => setSelectedPreset(p.id)}
+                    className={`p-3 rounded-xl border-2 text-left transition-all ${
+                      selectedPreset === p.id
+                        ? 'border-accent bg-accent/5'
+                        : 'border-border hover:border-muted-foreground'
+                    }`}
+                  >
+                    <p className="text-sm font-medium text-foreground">{t(p.labelKey as any)}</p>
+                    <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2">{p.personality[lang]}</p>
+                  </button>
+                ))}
               </div>
-            ))}
+            </div>
+
+            {/* Preview of selected preset */}
+            {selectedPreset && (() => {
+              const preset = PERSONA_PRESETS.find(p => p.id === selectedPreset)!;
+              return (
+                <div className="space-y-2 rounded-xl bg-secondary/50 p-4">
+                  <div>
+                    <span className="text-[11px] font-medium text-muted-foreground">{t('podSettings.personality')}</span>
+                    <p className="text-sm text-foreground">{preset.personality[lang]}</p>
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-medium text-muted-foreground">{t('podSettings.catchphrases')}</span>
+                    <p className="text-sm text-foreground">{preset.catchphrases[lang]}</p>
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-medium text-muted-foreground">{t('podSettings.answerStyle')}</span>
+                    <p className="text-sm text-foreground">{preset.answerStyle[lang]}</p>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Custom overrides */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-2 block">{t('wizard.persona.customLabel')}</label>
+              <textarea
+                value={customPersonality}
+                onChange={e => setCustomPersonality(e.target.value)}
+                placeholder={t('wizard.persona.customPlaceholder')}
+                rows={3}
+                className="w-full px-3 py-2 rounded-lg bg-secondary text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent resize-none"
+              />
+            </div>
           </div>
         )}
       </div>
