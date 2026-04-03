@@ -107,14 +107,7 @@ export default function Index() {
 
                 <div className="flex items-center gap-2">
                   {podcast.status === 'ready' && (
-                    <Link
-                      to={`/podcast/${podcast.id}/summary`}
-                      onClick={e => e.stopPropagation()}
-                      className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-accent text-accent-foreground text-xs font-semibold hover:opacity-90 transition-all shadow-sm"
-                    >
-                      <Zap className="h-3 w-3" />
-                      {t('home.summary')}
-                    </Link>
+                    <SummaryButton podcastId={podcast.id} />
                   )}
 
 
