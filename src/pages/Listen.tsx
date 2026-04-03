@@ -298,8 +298,13 @@ export default function ListenPage() {
               </div>
             </div>
             <div className="space-y-3">
-              {transcript.map((l, i) => (
-                <div key={i} className="cursor-pointer hover:bg-secondary/50 -mx-2 px-2 py-1.5 rounded-lg transition-colors">
+              {transcript.map((l, i) => {
+                const isActive = i === activeLineIndex;
+                return (
+                <div key={i} ref={isActive ? activeLineRef : undefined}
+                  className={`cursor-pointer -mx-2 px-2 py-1.5 rounded-lg transition-all duration-300 ${
+                    isActive ? 'bg-accent/10 border-l-2 border-accent pl-3' : 'hover:bg-secondary/50'
+                  }`}>
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className={`text-[11px] font-semibold ${l.color}`}>{l.speaker}</span>
                     <span className="font-mono text-[10px] text-muted-foreground">{l.time}</span>
