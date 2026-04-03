@@ -212,7 +212,10 @@ export default function ListenPage() {
 
             {/* Controls */}
             <div className="flex items-center justify-center gap-5">
-              <button className="text-muted-foreground hover:text-foreground transition-colors"><SkipBack className="h-4 w-4" /></button>
+              <button onClick={() => setCurrentTime(prev => Math.max(0, prev - 10))} className="text-muted-foreground hover:text-foreground transition-colors relative">
+                <RotateCcw className="h-5 w-5" />
+                <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold mt-0.5">10</span>
+              </button>
               <button onClick={() => setPlaying(!playing)}
                 className="h-10 w-10 rounded-full bg-foreground text-background flex items-center justify-center hover:opacity-90 transition-opacity">
                 {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
