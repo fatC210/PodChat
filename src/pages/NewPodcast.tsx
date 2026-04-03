@@ -51,7 +51,7 @@ export default function NewPodcastPage() {
             }`}
           >
             <s.icon className="h-3.5 w-3.5" />
-            {s.label}
+            {t(s.labelKey as any)}
           </button>
         ))}
       </div>
