@@ -130,7 +130,7 @@ export default function SettingsPage() {
           <div>
             <label className="text-xs text-muted-foreground mb-1.5 block">{t('settings.baseUrl')}</label>
             <input value={keys.llmUrl} onChange={e => setKeys(p => ({ ...p, llmUrl: e.target.value }))} placeholder="https://api.openai.com/v1"
-              className="w-full h-9 px-3 rounded-lg bg-secondary border-0 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-accent" />
+              className="w-full h-9 px-3 rounded-lg bg-secondary border-0 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
           </div>
           <KeyInput id="llmKey" label={t('settings.apiKey')} placeholder="sk-..."
             value={keys.llmKey} onChange={e => setKeys(p => ({ ...p, llmKey: e.target.value }))}
