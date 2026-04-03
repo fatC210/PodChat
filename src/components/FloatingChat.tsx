@@ -32,7 +32,8 @@ function StreamingText({ text, onDone }: { text: string; onDone?: () => void }) 
     return () => clearInterval(iv);
   }, [text, onDone]);
 
-  return <>{displayed}<span className="inline-block w-[2px] h-[12px] bg-foreground/60 ml-0.5 animate-pulse align-middle" /></>;
+  const done = idx.current >= text.length;
+  return <>{displayed}{!done && <span className="inline-block w-[2px] h-[12px] bg-foreground/60 ml-0.5 animate-pulse align-middle" />}</>;
 }
 
 export default function FloatingChat({ open, onClose }: FloatingChatProps) {
