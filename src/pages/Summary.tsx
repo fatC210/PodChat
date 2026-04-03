@@ -11,34 +11,46 @@ const emotions: Record<string, string> = {
   humorous: 'bg-primary/10 text-primary',
 };
 
-// Segments per duration — AI auto-assigns emotion
-const segmentsByDuration: Record<number, { id: string; label: string; emotion: string; text: string }[]> = {
-  1: [
-    { id: '1', label: 'Summary', emotion: 'excited', text: "AI creativity is really just sophisticated remixing — and the brain can't tell the difference between AI and human art. The real question is emotional resonance." },
-  ],
-  3: [
-    { id: '1', label: 'Opening', emotion: 'lighthearted', text: "Today's topic: can AI truly be creative? The hosts argue it's blurrier than we think." },
-    { id: '2', label: 'Key Insight', emotion: 'excited', text: "AI-generated art triggers the same neurological responses as human art — the brain doesn't distinguish by origin." },
-    { id: '3', label: 'Takeaway', emotion: 'reflective', text: "AI won't replace human creativity, but the line between tool and collaborator gets blurrier daily." },
-  ],
-  5: [
-    { id: '1', label: 'Opening', emotion: 'lighthearted', text: "Hey everyone! Today we dove deep into whether AI can truly be creative, or if it's just a sophisticated remix machine." },
-    { id: '2', label: 'Key Point 1', emotion: 'serious', text: "The core argument: creativity isn't about generating something from nothing. Even human creativity is built on existing influences. The real question is emotional resonance." },
-    { id: '3', label: 'Key Point 2', emotion: 'excited', text: "What blew my mind was Dr. Kim's research — AI-generated art triggers the same neurological responses as human art. The brain doesn't distinguish by origin!" },
-    { id: '4', label: 'Key Point 3', emotion: 'reflective', text: "But here's the philosophical bit — if creativity requires intentionality and lived experience, then AI creates through a fundamentally different mechanism." },
-    { id: '5', label: 'Closing', emotion: 'humorous', text: "So the verdict? AI won't replace human creativity — but the line between 'tool' and 'collaborator' gets blurrier daily. My robot co-host might steal my job! 😄" },
-  ],
-  10: [
-    { id: '1', label: 'Introduction', emotion: 'lighthearted', text: "Welcome back! Today's episode tackles the big question — is AI creative, or just a very good mimic?" },
-    { id: '2', label: 'Background', emotion: 'serious', text: "We start with the history of creativity research. Psychologists have long debated whether creativity is innate or learned, and now AI enters the picture." },
-    { id: '3', label: 'Research', emotion: 'excited', text: "Dr. Kim shares her lab's fascinating finding: fMRI scans show identical brain activation patterns when viewing AI vs human art." },
-    { id: '4', label: 'Debate', emotion: 'serious', text: "Alex pushes back — if creativity requires suffering, joy, and lived experience, can a machine without consciousness truly create?" },
-    { id: '5', label: 'Philosophy', emotion: 'reflective', text: "The discussion turns philosophical. If we can't distinguish the output, does the process matter? Is consciousness necessary for creativity?" },
-    { id: '6', label: 'Industry Impact', emotion: 'excited', text: "Real-world examples: AI is already composing film scores, writing novels, and designing architecture. Where does this leave human creators?" },
-    { id: '7', label: 'Ethics', emotion: 'serious', text: "The ethical dimension: attribution, copyright, and the value we place on human effort vs machine efficiency." },
-    { id: '8', label: 'Future', emotion: 'reflective', text: "Both hosts agree: the future isn't AI vs humans, it's AI + humans. The best creative work will be collaborative." },
-    { id: '9', label: 'Closing', emotion: 'humorous', text: "Until next time — and if this episode was actually written by AI, would you even know? 😄" },
-  ],
+// Each duration has one overall emotion + segments (no per-segment emotion)
+const summaryByDuration: Record<number, { emotion: string; segments: { id: string; label: string; text: string }[] }> = {
+  1: {
+    emotion: 'excited',
+    segments: [
+      { id: '1', label: 'Summary', text: "AI creativity is really just sophisticated remixing — and the brain can't tell the difference between AI and human art. The real question is emotional resonance." },
+    ],
+  },
+  3: {
+    emotion: 'reflective',
+    segments: [
+      { id: '1', label: 'Opening', text: "Today's topic: can AI truly be creative? The hosts argue it's blurrier than we think." },
+      { id: '2', label: 'Key Insight', text: "AI-generated art triggers the same neurological responses as human art — the brain doesn't distinguish by origin." },
+      { id: '3', label: 'Takeaway', text: "AI won't replace human creativity, but the line between tool and collaborator gets blurrier daily." },
+    ],
+  },
+  5: {
+    emotion: 'serious',
+    segments: [
+      { id: '1', label: 'Opening', text: "Hey everyone! Today we dove deep into whether AI can truly be creative, or if it's just a sophisticated remix machine." },
+      { id: '2', label: 'Key Point 1', text: "The core argument: creativity isn't about generating something from nothing. Even human creativity is built on existing influences. The real question is emotional resonance." },
+      { id: '3', label: 'Key Point 2', text: "What blew my mind was Dr. Kim's research — AI-generated art triggers the same neurological responses as human art. The brain doesn't distinguish by origin!" },
+      { id: '4', label: 'Key Point 3', text: "But here's the philosophical bit — if creativity requires intentionality and lived experience, then AI creates through a fundamentally different mechanism." },
+      { id: '5', label: 'Closing', text: "So the verdict? AI won't replace human creativity — but the line between 'tool' and 'collaborator' gets blurrier daily. My robot co-host might steal my job! 😄" },
+    ],
+  },
+  10: {
+    emotion: 'lighthearted',
+    segments: [
+      { id: '1', label: 'Introduction', text: "Welcome back! Today's episode tackles the big question — is AI creative, or just a very good mimic?" },
+      { id: '2', label: 'Background', text: "We start with the history of creativity research. Psychologists have long debated whether creativity is innate or learned, and now AI enters the picture." },
+      { id: '3', label: 'Research', text: "Dr. Kim shares her lab's fascinating finding: fMRI scans show identical brain activation patterns when viewing AI vs human art." },
+      { id: '4', label: 'Debate', text: "Alex pushes back — if creativity requires suffering, joy, and lived experience, can a machine without consciousness truly create?" },
+      { id: '5', label: 'Philosophy', text: "The discussion turns philosophical. If we can't distinguish the output, does the process matter? Is consciousness necessary for creativity?" },
+      { id: '6', label: 'Industry Impact', text: "Real-world examples: AI is already composing film scores, writing novels, and designing architecture. Where does this leave human creators?" },
+      { id: '7', label: 'Ethics', text: "The ethical dimension: attribution, copyright, and the value we place on human effort vs machine efficiency." },
+      { id: '8', label: 'Future', text: "Both hosts agree: the future isn't AI vs humans, it's AI + humans. The best creative work will be collaborative." },
+      { id: '9', label: 'Closing', text: "Until next time — and if this episode was actually written by AI, would you even know? 😄" },
+    ],
+  },
 };
 
 export default function SummaryPage() {
@@ -70,7 +82,9 @@ export default function SummaryPage() {
     }
   }, []);
 
-  const segments = dur ? segmentsByDuration[dur] || [] : [];
+  const summary = dur ? summaryByDuration[dur] : null;
+  const segments = summary?.segments || [];
+  const overallEmotion = summary?.emotion || null;
 
   const handleSelectDuration = (d: number) => {
     setDur(d);
@@ -81,7 +95,7 @@ export default function SummaryPage() {
     // Simulate generation
     setTimeout(() => {
       setGenerating(false);
-      setActive(segmentsByDuration[d]?.[0]?.id || null);
+      setActive(summaryByDuration[d]?.segments?.[0]?.id || null);
     }, 1500);
   };
 
@@ -124,6 +138,14 @@ export default function SummaryPage() {
         </div>
       ) : segments.length > 0 ? (
         <div className="space-y-4 animate-fade-in">
+          {/* Overall emotion badge */}
+          {overallEmotion && (
+            <div className="flex items-center gap-2">
+              <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${emotions[overallEmotion]}`}>
+                {t(`summary.emotions.${overallEmotion}` as any)}
+              </span>
+            </div>
+          )}
           {/* Segments */}
           <div className="space-y-2">
             {segments.map(seg => (
@@ -133,9 +155,6 @@ export default function SummaryPage() {
                 }`}>
                 <div className="flex items-center gap-2 mb-1.5">
                   <span className="text-[11px] font-semibold text-foreground">{seg.label}</span>
-                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${emotions[seg.emotion]}`}>
-                    {t(`summary.emotions.${seg.emotion}` as any)}
-                  </span>
                 </div>
                 <p className="text-[13px] text-foreground/80 leading-relaxed">{seg.text}</p>
               </button>
