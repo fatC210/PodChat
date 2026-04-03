@@ -62,7 +62,7 @@ export default function NewPodcastPage() {
 
   const handlePrev = () => {
     // Jump back to previous user step
-    const prevUserStep = USER_STEPS.findLast(s => s.internalIndex < step);
+    const prevUserStep = [...USER_STEPS].reverse().find(s => s.internalIndex < step);
     if (prevUserStep) setStep(prevUserStep.internalIndex);
   };
 
