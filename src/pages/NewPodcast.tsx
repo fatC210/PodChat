@@ -59,7 +59,7 @@ const PERSONA_PRESETS = [
 ];
 
 export default function NewPodcastPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const nav = useNavigate();
   const [step, setStep] = useState(0); // internal step index (0-8)
   const [type, setType] = useState<'solo' | 'multi'>('solo');
