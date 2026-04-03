@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { MessageCircle, Zap, Play, Pause, SkipBack, SkipForward, ChevronDown, Settings } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
+import FloatingChat from '@/components/FloatingChat';
 
 const chapters = [
   { id: '1', title: 'Opening', time: '0:00' },
