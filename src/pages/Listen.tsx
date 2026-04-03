@@ -23,6 +23,16 @@ const transcript = [
 
 type TranscriptMode = 'original' | 'translated' | 'trans-top' | 'trans-bottom';
 
+const targetLangs = [
+  { code: 'zh', label: '中文' },
+  { code: 'en', label: 'English' },
+  { code: 'ja', label: '日本語' },
+  { code: 'ko', label: '한국어' },
+  { code: 'es', label: 'Español' },
+  { code: 'fr', label: 'Français' },
+  { code: 'de', label: 'Deutsch' },
+];
+
 const speeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
 export default function ListenPage() {
