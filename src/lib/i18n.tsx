@@ -117,6 +117,10 @@ const translations = {
     'listen.transcript': 'Transcript',
     'listen.chatNow': 'Chat Now',
     'listen.speed': 'Speed',
+    'listen.modeOriginal': 'Original',
+    'listen.modeTranslated': 'Translated',
+    'listen.modeTransTop': 'Trans ↑ Orig ↓',
+    'listen.modeTransBottom': 'Orig ↑ Trans ↓',
 
     // Chat Mode
     'chat.title': 'Chat',
