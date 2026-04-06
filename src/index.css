@@ -1,14 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --font-display: 'DM Sans', sans-serif;
-    --font-body: 'DM Sans', sans-serif;
-    --font-mono: 'JetBrains Mono', monospace;
+    --font-display: "Aptos", "Segoe UI Variable Text", "Segoe UI", sans-serif;
+    --font-mono: "JetBrains Mono", "Cascadia Code", "SFMono-Regular", monospace;
+    --font-body: var(--font-display);
 
     --background: 270 20% 98%;
     --foreground: 260 15% 15%;
@@ -124,6 +122,29 @@
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-display);
   }
+
+  input[type="password"]::-ms-reveal,
+  input[type="password"]::-ms-clear {
+    display: none;
+  }
+
+  input[type="password"]::-webkit-credentials-auto-fill-button {
+    visibility: hidden;
+    display: none !important;
+    pointer-events: none;
+  }
+
+  .wizard-number-input {
+    text-align: center;
+    text-align-last: center;
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+
+  .wizard-number-input::-webkit-outer-spin-button,
+  .wizard-number-input::-webkit-inner-spin-button {
+    margin: 0;
+  }
 }
 
 @layer utilities {
@@ -174,4 +195,9 @@
   0% { transform: scaleY(1); }
   50% { transform: scaleY(0.45); }
   100% { transform: scaleY(1); }
+}
+
+@keyframes waveGrow {
+  0% { transform: scaleY(0.75); }
+  100% { transform: scaleY(1.2); }
 }

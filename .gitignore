@@ -8,9 +8,13 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+.next
+package-lock.json
+bun.lockb
 dist
 dist-ssr
 *.local
+.podchat
 
 # Editor directories and files
 .vscode/*

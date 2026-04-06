@@ -11,13 +11,18 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => {
+  const [theme, setThemeState] = useState<Theme>('dark');
+
+  useEffect(() => {
     try {
-      return (localStorage.getItem('podchat_theme') as Theme) || 'dark';
+      const stored = localStorage.getItem('podchat_theme') as Theme | null;
+      if (stored === 'dark' || stored === 'light') {
+        setThemeState(stored);
+      }
     } catch {
-      return 'dark';
+      void 0;
     }
-  });
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -32,7 +37,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setTheme = useCallback((t: Theme) => {
     setThemeState(t);
-    try { localStorage.setItem('podchat_theme', t); } catch {}
+    try {
+      localStorage.setItem('podchat_theme', t);
+    } catch {
+      void 0;
+    }
   }, []);
 
   const toggleTheme = useCallback(() => {

@@ -16,6 +16,7 @@ const translations = {
     'common.delete': 'Delete',
     'common.remove': 'Remove',
     'common.edit': 'Edit',
+    'common.regenerate': 'Regenerate',
     'common.export': 'Export',
     'common.import': 'Import',
     'common.retry': 'Retry',
@@ -40,6 +41,16 @@ const translations = {
     'home.chat': 'Chat',
     'home.summary': 'Summary',
     'home.continueSetup': 'Continue Setup',
+    'home.currentStep': 'Current step',
+    'home.configStep.upload': 'Upload file',
+    'home.configStep.type': 'Select type',
+    'home.configStep.persona': 'Configure persona',
+    'home.configStep.review': 'Review setup',
+    'home.configStep.queued': 'Waiting for backend processing',
+    'home.configStep.transcribing': 'Generate transcript',
+    'home.configStep.summarizing': 'Generate summary',
+    'home.configStep.knowledge': 'Build knowledge base',
+    'home.configStep.finalizing': 'Finalize podcast',
 
     // Settings
     'settings.title': 'Settings',
@@ -51,6 +62,8 @@ const translations = {
     'settings.llm': 'LLM Provider',
     'settings.llmDesc': 'Any OpenAI-compatible LLM endpoint',
     'settings.apiKey': 'API Key',
+    'settings.voiceId': 'Voice ID',
+    'settings.voiceIdPlaceholder': 'Optional: preferred ElevenLabs voice ID',
     'settings.baseUrl': 'Base URL',
     'settings.modelName': 'Model Name',
     'settings.language': 'Language',
@@ -58,9 +71,24 @@ const translations = {
     'settings.dark': 'Dark',
     'settings.light': 'Light',
     'settings.saved': 'Settings saved',
+    'settings.provider.elevenlabs': 'ElevenLabs',
+    'settings.provider.firecrawl': 'Firecrawl',
+    'settings.provider.llm': 'LLM',
+    'settings.test.ok.elevenlabs': 'ElevenLabs connection succeeded.',
+    'settings.test.ok.firecrawl': 'Firecrawl connection succeeded.',
+    'settings.test.ok.firecrawlCredits': 'Firecrawl connection succeeded. Remaining credits: {count}.',
+    'settings.test.ok.llm': 'LLM connection succeeded with model {model}.',
+    'settings.test.missing.elevenlabs': 'ElevenLabs API key is required.',
+    'settings.test.missing.firecrawl': 'Firecrawl API key is required.',
+    'settings.test.missing.llm': 'LLM base URL, API key, and model name are required.',
+    'settings.test.error.upstream': '{provider} connection failed.',
+    'settings.test.error.unsupported': 'Unsupported integration provider.',
+    'settings.test.error.generic': 'Integration test failed.',
 
     // New Podcast Wizard
     'wizard.title': 'New Podcast',
+    'wizard.subtitle': 'Create a podcast entry and wait for backend processing to populate real transcript, summary, and chat data.',
+    'wizard.editDraft': 'Edit a configuring podcast entry. No generated content is faked locally.',
     'wizard.step1': 'Upload Audio',
     'wizard.step1Desc': 'Upload your podcast audio file',
     'wizard.step2': 'Podcast Type',
@@ -83,6 +111,19 @@ const translations = {
     'wizard.upload.or': 'or',
     'wizard.upload.browse': 'Browse files',
     'wizard.upload.formats': 'Supports MP3, WAV, M4A, MP4, MOV, AVI, MKV',
+    'wizard.podcastTitle': 'Podcast title',
+    'wizard.podcastTitlePlaceholder': 'Give this podcast a clear title',
+    'wizard.catchphrasePlaceholder': 'Optional catchphrases or repeated phrasing patterns...',
+    'wizard.answerStylePlaceholder': 'Optional preferred answer structure...',
+    'wizard.noMockTitle': 'No local mock content',
+    'wizard.noMockDesc': 'This page only saves uploaded file metadata and persona settings. Speaker detection, transcript, summaries, and chat become available only after real backend processing completes.',
+    'wizard.reviewTitle': 'Review & Create',
+    'wizard.reviewDesc': 'Check the submitted file, podcast type, and persona before creating the configuring podcast entry.',
+    'wizard.reviewPill': 'Review',
+    'wizard.reviewFileLabel': 'Uploaded file',
+    'wizard.reviewFormatLabel': 'Podcast type',
+    'wizard.reviewPersonaLabel': 'Persona preset',
+    'wizard.reviewSpeakers': '{count} reference speakers',
     'wizard.type.solo': 'Solo Podcast',
     'wizard.type.multi': 'Multi-Speaker',
     'wizard.type.refCount': 'Reference speaker count (actual count determined by detection)',
@@ -98,6 +139,8 @@ const translations = {
     'wizard.persona.humorous': 'Humorous',
     'wizard.persona.professional': 'Professional',
     'wizard.persona.selectPreset': 'Choose a persona style',
+    'wizard.persona.noPreset': 'No preset',
+    'wizard.persona.noPresetDesc': 'Start from a blank persona and only use your custom instructions.',
     'wizard.persona.customLabel': 'Custom additions (optional)',
     'wizard.persona.customPlaceholder': 'Add your own personality traits, catchphrases, or speaking style...',
     'wizard.pill.upload': 'Upload',
@@ -122,17 +165,27 @@ const translations = {
     'listen.modeTranslated': 'Translated',
     'listen.modeTransTop': 'Trans ↑ Orig ↓',
     'listen.modeTransBottom': 'Orig ↑ Trans ↓',
+    'listen.aiHostHint': 'Preview each speaker\'s original audio before cloning the AI host voice.',
+    'listen.recommendedHost': 'Recommended',
+    'listen.currentHost': 'Current host',
+    'listen.selectedHost': 'Selected AI host source',
+    'listen.manageVoice': 'Manage voice',
+    'listen.hideVoiceSettings': 'Hide voice settings',
+    'listen.previewUnavailable': 'Speaker preview audio is unavailable.',
 
     // Chat Mode
     'chat.title': 'Chat',
     'chat.backToListen': 'Back to Listen',
     'chat.placeholder': 'Type your message...',
     'chat.holdToSpeak': 'Hold to speak',
+    'chat.tapToCall': 'Tap mic to start live call',
+    'chat.tapToEndCall': 'Tap mic again to end the call',
     'chat.orType': 'or type a message',
     'chat.endChat': 'End Chat',
     'chat.greeting': 'You were just listening to the part about {topic}. What would you like to ask?',
     'chat.newSession': 'New Session',
     'chat.live': 'Live',
+    'chat.unavailable': 'Chat is unavailable until transcript, summary, and LLM configuration are ready.',
 
     // Summary Mode
     'summary.title': 'Quick Summary',
@@ -141,6 +194,7 @@ const translations = {
     'summary.generating': 'Generating summary...',
     'summary.min': '{n} min',
     'summary.jumpToOriginal': 'Jump to original',
+    'summary.unavailable': 'No generated summary is available for this podcast yet.',
     'summary.emotions.lighthearted': 'Lighthearted',
     'summary.emotions.serious': 'Serious',
     'summary.emotions.excited': 'Excited',
@@ -154,12 +208,32 @@ const translations = {
     'podSettings.catchphrases': 'Catchphrases',
     'podSettings.answerStyle': 'Answer Style',
     'podSettings.languagePref': 'Language Preference',
+    'podSettings.processingNote': 'Processing Note',
+    'podSettings.notFound': 'Podcast not found',
+    'podSettings.aiHostVoice': 'AI Host Voice',
+    'podSettings.hostSpeakerSource': 'Host speaker source',
+    'podSettings.currentAiHost': 'Current AI host: {name}',
+    'podSettings.currentVoice': 'Current voice: {name}',
+    'podSettings.notAssigned': 'Not assigned',
+    'podSettings.notClonedYet': 'Not cloned yet',
+    'podSettings.cloneHostVoice': 'Clone selected speaker as AI host',
+    'podSettings.voiceUpdated': 'AI host voice updated.',
+    'podSettings.voiceUpdateFailed': 'Failed to clone host voice.',
+    'podSettings.regenerateTitle': 'Regenerate Podcast',
+    'podSettings.regenerateDesc': 'Clear the current transcript, summary, knowledge base, and AI host output, then run backend processing again.',
     'podSettings.knowledgeBase': 'Knowledge Base',
     'podSettings.scriptChunks': 'Script Chunks',
     'podSettings.crawledPages': 'Crawled Pages',
-    'podSettings.previewChat': 'Preview Chat',
     'podSettings.dangerZone': 'Danger Zone',
     'podSettings.deletePodcast': 'Delete Podcast',
+    'podSettings.emptyKnowledge': 'No knowledge base data has been generated yet.',
+
+    // Podcast State
+    'podcast.notReadyTitle': 'Podcast not ready',
+    'podcast.notReadyDesc': 'This podcast has not finished backend processing yet, so transcript, summary, and chat data are unavailable.',
+    'podcast.noTranscript': 'No transcript is available yet.',
+    'podcast.regenerateStarted': 'Podcast regeneration started.',
+    'podcast.regenerateFailed': 'Failed to start podcast regeneration.',
 
     // Storage
     'storage.title': 'Storage',
@@ -183,6 +257,7 @@ const translations = {
     'common.delete': '删除',
     'common.remove': '移除',
     'common.edit': '编辑',
+    'common.regenerate': '重新生成',
     'common.export': '导出',
     'common.import': '导入',
     'common.retry': '重试',
@@ -207,6 +282,16 @@ const translations = {
     'home.chat': '开聊',
     'home.summary': '速览',
     'home.continueSetup': '继续配置',
+    'home.currentStep': '当前步骤',
+    'home.configStep.upload': '上传文件',
+    'home.configStep.type': '选择类型',
+    'home.configStep.persona': '配置人设',
+    'home.configStep.review': '确认配置',
+    'home.configStep.queued': '等待后端处理',
+    'home.configStep.transcribing': '生成文字稿',
+    'home.configStep.summarizing': '生成摘要',
+    'home.configStep.knowledge': '构建知识库',
+    'home.configStep.finalizing': '收尾完成',
 
     // Settings
     'settings.title': '设置',
@@ -218,6 +303,8 @@ const translations = {
     'settings.llm': 'LLM 服务',
     'settings.llmDesc': '兼容 OpenAI 格式的任意 LLM 端点',
     'settings.apiKey': 'API 密钥',
+    'settings.voiceId': 'Voice ID',
+    'settings.voiceIdPlaceholder': '可选：偏好的 ElevenLabs Voice ID',
     'settings.baseUrl': '请求地址',
     'settings.modelName': '模型名称',
     'settings.language': '语言',
@@ -225,9 +312,24 @@ const translations = {
     'settings.dark': '深色',
     'settings.light': '浅色',
     'settings.saved': '设置已保存',
+    'settings.provider.elevenlabs': 'ElevenLabs',
+    'settings.provider.firecrawl': 'Firecrawl',
+    'settings.provider.llm': 'LLM',
+    'settings.test.ok.elevenlabs': 'ElevenLabs 连接成功。',
+    'settings.test.ok.firecrawl': 'Firecrawl 连接成功。',
+    'settings.test.ok.firecrawlCredits': 'Firecrawl 连接成功。剩余额度：{count}。',
+    'settings.test.ok.llm': 'LLM 连接成功，当前模型：{model}。',
+    'settings.test.missing.elevenlabs': '请先填写 ElevenLabs API 密钥。',
+    'settings.test.missing.firecrawl': '请先填写 Firecrawl API 密钥。',
+    'settings.test.missing.llm': '请先填写 LLM 请求地址、API 密钥和模型名称。',
+    'settings.test.error.upstream': '{provider} 连接失败。',
+    'settings.test.error.unsupported': '不支持的集成服务。',
+    'settings.test.error.generic': '集成测试失败。',
 
     // New Podcast Wizard
     'wizard.title': '新建播客',
+    'wizard.subtitle': '创建播客条目后，等待后端处理生成真实的文字稿、摘要和聊天数据。',
+    'wizard.editDraft': '编辑一个配置中的播客条目。当前不会在本地伪造生成内容。',
     'wizard.step1': '上传音频',
     'wizard.step1Desc': '上传你的播客音频文件',
     'wizard.step2': '播客类型',
@@ -250,6 +352,19 @@ const translations = {
     'wizard.upload.or': '或',
     'wizard.upload.browse': '选择文件',
     'wizard.upload.formats': '支持 MP3、WAV、M4A、MP4、MOV、AVI、MKV',
+    'wizard.podcastTitle': '播客标题',
+    'wizard.podcastTitlePlaceholder': '给这个播客起一个清晰的标题',
+    'wizard.catchphrasePlaceholder': '可选：补充口头禅或常用表达方式……',
+    'wizard.answerStylePlaceholder': '可选：补充偏好的回答结构……',
+    'wizard.noMockTitle': '已移除本地假数据',
+    'wizard.noMockDesc': '当前页面只保存上传文件的元信息和人设配置。说话人识别、文字稿、摘要和聊天能力只会在真实后端处理完成后出现。',
+    'wizard.reviewTitle': '检查并创建',
+    'wizard.reviewDesc': '在创建配置中的播客条目前，检查上传文件、播客类型和人设配置。',
+    'wizard.reviewPill': '确认',
+    'wizard.reviewFileLabel': '已上传文件',
+    'wizard.reviewFormatLabel': '播客类型',
+    'wizard.reviewPersonaLabel': '人设预设',
+    'wizard.reviewSpeakers': '{count} 位参考说话人',
     'wizard.type.solo': '单人播客',
     'wizard.type.multi': '多人播客',
     'wizard.type.refCount': '参考人数（实际以识别结果为准）',
@@ -265,6 +380,8 @@ const translations = {
     'wizard.persona.humorous': '风趣幽默型',
     'wizard.persona.professional': '专业权威型',
     'wizard.persona.selectPreset': '选择人设风格',
+    'wizard.persona.noPreset': '不使用预设',
+    'wizard.persona.noPresetDesc': '从空白人设开始，只使用你的自定义描述。',
     'wizard.persona.customLabel': '自定义补充（可选）',
     'wizard.persona.customPlaceholder': '添加你自己的性格特点、口头禅或说话风格...',
     'wizard.pill.upload': '上传文件',
@@ -289,17 +406,27 @@ const translations = {
     'listen.modeTranslated': '仅译文',
     'listen.modeTransTop': '译文在上',
     'listen.modeTransBottom': '译文在下',
+    'listen.aiHostHint': '先试听每位说话人的原始音频，再把选中的声音克隆成 AI 主播。',
+    'listen.recommendedHost': '默认推荐',
+    'listen.currentHost': '当前主播',
+    'listen.selectedHost': '已选 AI 主播来源',
+    'listen.manageVoice': '调整声音',
+    'listen.hideVoiceSettings': '收起声音设置',
+    'listen.previewUnavailable': '说话人试听音频暂不可用。',
 
     // Chat Mode
     'chat.title': '开聊',
     'chat.backToListen': '返回收听',
     'chat.placeholder': '输入消息...',
     'chat.holdToSpeak': '按住说话',
+    'chat.tapToCall': '点击麦克风开始实时通话',
+    'chat.tapToEndCall': '再次点击麦克风结束通话',
     'chat.orType': '或输入文字发送',
     'chat.endChat': '结束对话',
     'chat.greeting': '你刚听到我在聊 {topic}，有什么想问的吗？',
     'chat.newSession': '新会话',
     'chat.live': '通话中',
+    'chat.unavailable': '在文字稿、摘要和 LLM 配置就绪之前，聊天功能不可用。',
 
     // Summary Mode
     'summary.title': '速览模式',
@@ -308,6 +435,7 @@ const translations = {
     'summary.generating': '正在生成摘要...',
     'summary.min': '{n} 分钟',
     'summary.jumpToOriginal': '跳转原文',
+    'summary.unavailable': '这个播客暂时还没有可用的生成摘要。',
     'summary.emotions.lighthearted': '轻松',
     'summary.emotions.serious': '严肃',
     'summary.emotions.excited': '兴奋',
@@ -321,12 +449,32 @@ const translations = {
     'podSettings.catchphrases': '口头禅',
     'podSettings.answerStyle': '回答风格',
     'podSettings.languagePref': '语言偏好',
+    'podSettings.processingNote': '处理说明',
+    'podSettings.notFound': '未找到播客',
+    'podSettings.aiHostVoice': 'AI 主播声音',
+    'podSettings.hostSpeakerSource': '主播来源说话人',
+    'podSettings.currentAiHost': '当前 AI 主播：{name}',
+    'podSettings.currentVoice': '当前声音：{name}',
+    'podSettings.notAssigned': '未指定',
+    'podSettings.notClonedYet': '尚未克隆',
+    'podSettings.cloneHostVoice': '将所选说话人克隆为 AI 主播',
+    'podSettings.voiceUpdated': 'AI 主播声音已更新。',
+    'podSettings.voiceUpdateFailed': '克隆 AI 主播声音失败。',
+    'podSettings.regenerateTitle': '重新生成播客',
+    'podSettings.regenerateDesc': '清空当前的文字稿、摘要、知识库和 AI 主播结果，然后重新执行一次后端处理流程。',
     'podSettings.knowledgeBase': '知识库',
     'podSettings.scriptChunks': '脚本分段',
     'podSettings.crawledPages': '爬取页面',
-    'podSettings.previewChat': '预览对话',
     'podSettings.dangerZone': '危险操作',
     'podSettings.deletePodcast': '删除播客',
+    'podSettings.emptyKnowledge': '知识库数据尚未生成。',
+
+    // Podcast State
+    'podcast.notReadyTitle': '播客尚未就绪',
+    'podcast.notReadyDesc': '这个播客还没有完成后端处理，因此文字稿、摘要和聊天数据暂不可用。',
+    'podcast.noTranscript': '暂时还没有文字稿。',
+    'podcast.regenerateStarted': '已开始重新生成播客。',
+    'podcast.regenerateFailed': '启动重新生成失败。',
 
     // Storage
     'storage.title': '存储',
@@ -349,17 +497,26 @@ interface I18nContextType {
 const I18nContext = createContext<I18nContextType | null>(null);
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Lang>(() => {
+  const [lang, setLangState] = useState<Lang>('en');
+
+  useEffect(() => {
     try {
-      return (localStorage.getItem('podchat_lang') as Lang) || 'en';
+      const stored = localStorage.getItem('podchat_lang') as Lang | null;
+      if (stored === 'en' || stored === 'zh') {
+        setLangState(stored);
+      }
     } catch {
-      return 'en';
+      void 0;
     }
-  });
+  }, []);
 
   const setLang = useCallback((newLang: Lang) => {
     setLangState(newLang);
-    try { localStorage.setItem('podchat_lang', newLang); } catch {}
+    try {
+      localStorage.setItem('podchat_lang', newLang);
+    } catch {
+      void 0;
+    }
   }, []);
 
   const t = useCallback((key: TranslationKey, params?: Record<string, string | number>) => {

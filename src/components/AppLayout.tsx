@@ -1,30 +1,21 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Settings, ChevronLeft, Sun, Moon } from 'lucide-react';
+'use client';
+
+import Link from 'next/link';
+import { Settings, Sun, Moon } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useTheme } from '@/lib/theme';
-import logo from '@/assets/logo.svg';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { t, lang, setLang } = useI18n();
   const { theme, toggleTheme } = useTheme();
-  const location = useLocation();
-  const nav = useNavigate();
-  const isHome = location.pathname === '/';
-
-  const goBack = () => nav(-1);
 
   return (
     <div className="min-h-screen bg-background">
       <header className="fixed top-0 left-0 right-0 z-50 glass border-b border-border">
         <div className="max-w-screen-lg mx-auto flex h-12 items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-2">
-            {!isHome && (
-              <button onClick={goBack} className="mr-1 text-muted-foreground hover:text-foreground transition-colors">
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-            )}
-            <Link to="/" className="flex items-center gap-2 group">
-              <img src={logo} alt="PodChat" className="h-8 w-8" />
+            <Link href="/" className="flex items-center gap-2 group">
+              <img src="/logo.svg" alt="PodChat" className="h-8 w-8" />
               <span className="font-semibold text-foreground text-[15px] tracking-tight">
                 {t('app.name')}
               </span>
@@ -45,7 +36,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               {theme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
             </button>
             <Link
-              to="/settings"
+              href="/settings"
               className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center"
             >
               <Settings className="h-3.5 w-3.5" />

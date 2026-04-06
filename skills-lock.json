@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "agents": {
+      "source": "elevenlabs/skills",
+      "sourceType": "github",
+      "computedHash": "31daf8659c6eeb0acc3d8752173849b4a1cd9c7eff4219468bd323ec9ace88d1"
+    }
+  }
+}
