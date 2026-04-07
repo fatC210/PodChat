@@ -229,6 +229,32 @@ export async function cloneHostVoice(podcastId: string, speakerId: string) {
   return (await response.json()) as { podcast: Podcast };
 }
 
+export async function requestSummaryTranslation(
+  podcastId: string,
+  duration: number,
+  targetLang: string,
+) {
+  const response = await fetch(`/api/podcasts/${podcastId}/summary-translation`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      duration,
+      targetLang,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response));
+  }
+
+  return (await response.json()) as {
+    text: string;
+    podcast: Podcast;
+  };
+}
+
 export async function startAgentSession() {
   const response = await fetch("/api/agent/session", {
     method: "POST",

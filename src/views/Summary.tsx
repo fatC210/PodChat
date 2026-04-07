@@ -2,18 +2,34 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import { Play, Pause, ChevronDown, ChevronLeft } from "lucide-react";
+import { Play, Pause, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import { requestSummaryTranslation } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { useAppData } from "@/lib/app-data";
 import { useBackNavigation } from "@/lib/navigation";
-import { formatDurationLabel, getSummary, isPodcastReady, summaryDurations, summaryEmotionClasses } from "@/lib/podchat-data";
+import { isMediaPlaybackInterruption } from "@/lib/utils";
+import {
+  formatDurationLabel,
+  getSummary,
+  getSummaryTranslation,
+  isPodcastReady,
+  summaryDurations,
+  summaryEmotions,
+  summaryEmotionClasses,
+  targetLangs,
+  type SummaryEmotion,
+  setPodcastSummaryEmotion,
+  upsertSummaryTranslation,
+} from "@/lib/podchat-data";
+
+type SummaryMode = "original" | "translated";
 
 export default function SummaryPage() {
   const { t } = useI18n();
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
-  const { podcasts, hydrated } = useAppData();
+  const { podcasts, hydrated, updatePodcast } = useAppData();
   const goBack = useBackNavigation("/");
   const podcast = podcasts.find((entry) => entry.id === params.id);
   const [duration, setDuration] = useState<number | null>(null);
@@ -22,23 +38,68 @@ export default function SummaryPage() {
   const [audioDuration, setAudioDuration] = useState<number | null>(null);
   const [audioError, setAudioError] = useState<string | null>(null);
   const [showDurationMenu, setShowDurationMenu] = useState(false);
+  const [summaryMode, setSummaryMode] = useState<SummaryMode>("original");
+  const [showModeMenu, setShowModeMenu] = useState(false);
+  const [showTranslatedSubmenu, setShowTranslatedSubmenu] = useState(false);
+  const [targetLang, setTargetLang] = useState("zh");
+  const [translationText, setTranslationText] = useState<string | null>(null);
+  const [translationLoading, setTranslationLoading] = useState(false);
+  const [translationError, setTranslationError] = useState<string | null>(null);
   const durationRef = useRef<HTMLDivElement>(null);
+  const modeRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const playRequestIdRef = useRef(0);
+  const pendingPlayRef = useRef(false);
+
+  const resetAudioPlayback = () => {
+    playRequestIdRef.current += 1;
+    pendingPlayRef.current = false;
+    audioRef.current?.pause();
+    setPlaying(false);
+    setAudioDuration(null);
+    setAudioError(null);
+    setProgress(0);
+  };
 
   useEffect(() => {
-    if (!showDurationMenu) {
+    const anyMenuOpen = showDurationMenu || showModeMenu;
+
+    if (!anyMenuOpen) {
       return;
     }
 
     const handler = (event: MouseEvent) => {
-      if (durationRef.current && !durationRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+
+      if (showDurationMenu && durationRef.current && !durationRef.current.contains(target)) {
         setShowDurationMenu(false);
+      }
+
+      if (showModeMenu && modeRef.current && !modeRef.current.contains(target)) {
+        setShowModeMenu(false);
+        setShowTranslatedSubmenu(false);
       }
     };
 
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [showDurationMenu]);
+  }, [showDurationMenu, showModeMenu]);
+
+  useEffect(() => {
+    if (!showModeMenu) {
+      setShowTranslatedSubmenu(false);
+    }
+  }, [showModeMenu]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+
+    return () => {
+      playRequestIdRef.current += 1;
+      pendingPlayRef.current = false;
+      audio?.pause();
+    };
+  }, []);
 
   useEffect(() => {
     if (!podcast) {
@@ -46,31 +107,167 @@ export default function SummaryPage() {
     }
 
     const nextDuration = Number(searchParams.get("dur"));
+
     if (nextDuration && summaryDurations.includes(nextDuration as (typeof summaryDurations)[number])) {
-      setDuration(nextDuration);
-      setProgress(0);
+      playRequestIdRef.current += 1;
+      pendingPlayRef.current = false;
+      audioRef.current?.pause();
       setPlaying(false);
       setAudioDuration(null);
       setAudioError(null);
+      setProgress(0);
+      setDuration(nextDuration);
     }
   }, [podcast, searchParams]);
+
+  useEffect(() => {
+    if (!podcast) {
+      return;
+    }
+
+    setTargetLang(podcast.targetLang ?? "zh");
+  }, [podcast]);
 
   const summary = useMemo(
     () => (podcast && duration ? getSummary(podcast, duration) : null),
     [duration, podcast],
   );
 
+  const cachedTranslation = useMemo(
+    () => (summary ? getSummaryTranslation(summary, targetLang) : null),
+    [summary, targetLang],
+  );
+
+  useEffect(() => {
+    if (summaryMode !== "translated") {
+      setTranslationText(null);
+      setTranslationLoading(false);
+      setTranslationError(null);
+      return;
+    }
+
+    setTranslationText(cachedTranslation);
+    setTranslationError(null);
+
+    if (!podcast || !summary || cachedTranslation) {
+      setTranslationLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setTranslationLoading(true);
+
+    void requestSummaryTranslation(podcast.id, summary.duration, targetLang)
+      .then((result) => {
+        if (cancelled) {
+          return;
+        }
+
+        const nextText = result.text.trim();
+        setTranslationText(nextText || null);
+
+        if (!nextText) {
+          return;
+        }
+
+        updatePodcast(podcast.id, (currentPodcast) => ({
+          ...currentPodcast,
+          targetLang,
+          summaries: currentPodcast.summaries.map((entry) =>
+            entry.duration === summary.duration
+              ? upsertSummaryTranslation(entry, targetLang, nextText)
+              : entry,
+          ),
+        }));
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+
+        const message = error instanceof Error ? error.message : t("summary.translationFailed");
+        setTranslationError(message);
+        toast.error(message);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setTranslationLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cachedTranslation, podcast, summary, summaryMode, t, targetLang, updatePodcast]);
+
+  const displayText =
+    summaryMode === "translated"
+      ? translationText ?? summary?.text ?? ""
+      : summary?.text ?? "";
+  const summaryAudioSrc = useMemo(() => {
+    if (!podcast || !summary || !duration) {
+      return null;
+    }
+
+    const params = new URLSearchParams({
+      dur: String(duration),
+      emotion: summary.emotion,
+    });
+
+    if (summaryMode === "translated") {
+      params.set("lang", targetLang);
+    }
+
+    return `/api/podcasts/${podcast.id}/summary-audio?${params.toString()}`;
+  }, [duration, podcast, summary, summaryMode, targetLang]);
+  const selectedLangLabel = targetLangs.find((lang) => lang.code === targetLang)?.label ?? targetLang.toUpperCase();
+  const selectedModeLabel =
+    summaryMode === "translated"
+      ? selectedLangLabel
+      : t("listen.modeOriginal");
+
   const handleSelectDuration = (value: number) => {
     if (!podcast) {
       return;
     }
 
+    resetAudioPlayback();
     setDuration(value);
     setShowDurationMenu(false);
-    setProgress(0);
-    setPlaying(false);
-    setAudioDuration(null);
-    setAudioError(null);
+    setTranslationError(null);
+  };
+
+  const handleSelectSummaryMode = (value: SummaryMode, nextTargetLang?: string) => {
+    if (!podcast) {
+      return;
+    }
+
+    resetAudioPlayback();
+
+    if (value === "translated" && nextTargetLang) {
+      setTargetLang(nextTargetLang);
+      setTranslationError(null);
+      updatePodcast(podcast.id, (currentPodcast) => ({
+        ...currentPodcast,
+        targetLang: nextTargetLang,
+      }));
+    }
+
+    setSummaryMode(value);
+    setShowModeMenu(false);
+    setShowTranslatedSubmenu(false);
+  };
+
+  const handleSelectEmotion = (emotion: SummaryEmotion) => {
+    if (!podcast || !summary || summary.emotion === emotion) {
+      return;
+    }
+
+    resetAudioPlayback();
+    updatePodcast(podcast.id, (currentPodcast) => ({
+      ...currentPodcast,
+      summaries: setPodcastSummaryEmotion(currentPodcast.summaries, emotion),
+    }));
   };
 
   const togglePlayback = async () => {
@@ -80,18 +277,33 @@ export default function SummaryPage() {
       return;
     }
 
-    if (audio.paused) {
-      try {
-        await audio.play();
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Summary audio could not start.";
-        setAudioError(message);
-        toast.error(message);
-      }
+    if (pendingPlayRef.current || !audio.paused) {
+      playRequestIdRef.current += 1;
+      pendingPlayRef.current = false;
+      audio.pause();
       return;
     }
 
-    audio.pause();
+    const requestId = playRequestIdRef.current + 1;
+    playRequestIdRef.current = requestId;
+    pendingPlayRef.current = true;
+    setAudioError(null);
+
+    try {
+      await audio.play();
+    } catch (error) {
+      if (playRequestIdRef.current !== requestId || isMediaPlaybackInterruption(error)) {
+        return;
+      }
+
+      const message = error instanceof Error ? error.message : "Summary audio could not start.";
+      setAudioError(message);
+      toast.error(message);
+    } finally {
+      if (playRequestIdRef.current === requestId) {
+        pendingPlayRef.current = false;
+      }
+    }
   };
 
   if (!hydrated) {
@@ -127,9 +339,9 @@ export default function SummaryPage() {
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
       {summary && duration && (
         <audio
-          key={`${podcast.id}-${duration}`}
+          key={summaryAudioSrc ?? `${podcast.id}-${duration}-${summaryMode === "translated" ? targetLang : "original"}-${summary.emotion}`}
           ref={audioRef}
-          src={`/api/podcasts/${podcast.id}/summary-audio?dur=${duration}`}
+          src={summaryAudioSrc ?? undefined}
           preload="none"
           onLoadedMetadata={(event) => {
             const nextDuration = Number.isFinite(event.currentTarget.duration) ? event.currentTarget.duration : 0;
@@ -144,13 +356,22 @@ export default function SummaryPage() {
               setProgress((audio.currentTime / nextDuration) * 100);
             }
           }}
-          onPlay={() => setPlaying(true)}
-          onPause={() => setPlaying(false)}
+          onPlay={() => {
+            pendingPlayRef.current = false;
+            setPlaying(true);
+          }}
+          onPause={() => {
+            pendingPlayRef.current = false;
+            setPlaying(false);
+          }}
           onEnded={() => {
+            pendingPlayRef.current = false;
             setPlaying(false);
             setProgress(100);
           }}
           onError={() => {
+            playRequestIdRef.current += 1;
+            pendingPlayRef.current = false;
             setPlaying(false);
             const message = "ElevenLabs summary audio is unavailable.";
             setAudioError(message);
@@ -158,7 +379,7 @@ export default function SummaryPage() {
         />
       )}
 
-      <div className="flex items-center justify-between mb-6 gap-3">
+      <div className="flex items-start justify-between mb-6 gap-3 flex-wrap">
         <div>
           <div className="flex items-center gap-3">
             <button
@@ -173,44 +394,125 @@ export default function SummaryPage() {
           <p className="text-sm text-muted-foreground mt-1">{podcast.title}</p>
         </div>
 
-        <div className="relative" ref={durationRef}>
-          <button
-            onClick={() => setShowDurationMenu((current) => !current)}
-            className="h-8 px-4 rounded-full bg-accent text-accent-foreground text-xs font-semibold hover:opacity-90 transition-all shadow-sm inline-flex items-center gap-1.5"
-          >
-            {duration ? t("summary.min", { n: duration.toString() }) : t("summary.selectDuration")}
-            <ChevronDown className="h-3 w-3" />
-          </button>
-          {showDurationMenu && (
-            <div className="absolute top-full mt-1 right-0 bg-card border border-border rounded-2xl p-1.5 shadow-lg min-w-[100px] z-10 animate-scale-in">
-              {summaryDurations.map((value) => (
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          <div className="relative" ref={modeRef}>
+            <button
+              onClick={() => {
+                setShowModeMenu((current) => !current);
+                setShowTranslatedSubmenu(false);
+              }}
+              className="h-8 px-3 rounded-full bg-secondary text-foreground text-xs font-medium hover:bg-secondary/80 transition-colors inline-flex items-center gap-1.5"
+            >
+              {selectedModeLabel}
+              <ChevronDown className="h-3 w-3" />
+            </button>
+            {showModeMenu && (
+              <div className="absolute top-full mt-1 right-0 bg-card border border-border rounded-2xl p-1.5 shadow-lg min-w-[120px] z-10 animate-scale-in">
                 <button
-                  key={value}
-                  onClick={() => handleSelectDuration(value)}
-                  className={`block w-full px-3 py-1.5 text-xs text-center font-medium rounded-full transition-colors ${
-                    duration === value ? "bg-accent text-accent-foreground" : "text-foreground hover:bg-secondary"
+                  onClick={() => handleSelectSummaryMode("original")}
+                  className={`block w-full px-3 py-1.5 text-xs text-left font-medium rounded-full transition-colors ${
+                    summaryMode === "original"
+                      ? "bg-accent text-accent-foreground"
+                      : "text-foreground hover:bg-secondary"
                   }`}
                 >
-                  {t("summary.min", { n: value.toString() })}
+                  {t("listen.modeOriginal")}
                 </button>
-              ))}
-            </div>
-          )}
+                <div
+                  className="relative"
+                  onMouseEnter={() => setShowTranslatedSubmenu(true)}
+                  onMouseLeave={() => setShowTranslatedSubmenu(false)}
+                >
+                  <button
+                    onClick={() => setShowTranslatedSubmenu((current) => !current)}
+                    className={`flex w-full items-center justify-between px-3 py-1.5 text-xs text-left font-medium rounded-full transition-colors ${
+                      showTranslatedSubmenu
+                        ? "bg-secondary text-foreground"
+                        : "text-foreground hover:bg-secondary"
+                    }`}
+                  >
+                    {t("listen.modeTranslated")}
+                    <ChevronRight className="h-3 w-3" />
+                  </button>
+                  {showTranslatedSubmenu && (
+                    <div className="absolute left-full top-0 ml-1 bg-card border border-border rounded-2xl p-1.5 shadow-lg min-w-[112px] z-20 animate-scale-in">
+                      {targetLangs.map((lang) => (
+                        <button
+                          key={lang.code}
+                          onClick={() => handleSelectSummaryMode("translated", lang.code)}
+                          className={`block w-full px-3 py-1.5 text-xs text-left font-medium rounded-full transition-colors ${
+                            summaryMode === "translated" && targetLang === lang.code
+                              ? "bg-accent text-accent-foreground"
+                              : "text-foreground hover:bg-secondary"
+                          }`}
+                        >
+                          {lang.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="relative" ref={durationRef}>
+            <button
+              onClick={() => setShowDurationMenu((current) => !current)}
+              className="h-8 px-4 rounded-full bg-accent text-accent-foreground text-xs font-semibold hover:opacity-90 transition-all shadow-sm inline-flex items-center gap-1.5"
+            >
+              {duration ? t("summary.min", { n: duration.toString() }) : t("summary.selectDuration")}
+              <ChevronDown className="h-3 w-3" />
+            </button>
+            {showDurationMenu && (
+              <div className="absolute top-full mt-1 right-0 bg-card border border-border rounded-2xl p-1.5 shadow-lg min-w-[100px] z-10 animate-scale-in">
+                {summaryDurations.map((value) => (
+                  <button
+                    key={value}
+                    onClick={() => handleSelectDuration(value)}
+                    className={`block w-full px-3 py-1.5 text-xs text-center font-medium rounded-full transition-colors ${
+                      duration === value ? "bg-accent text-accent-foreground" : "text-foreground hover:bg-secondary"
+                    }`}
+                  >
+                    {t("summary.min", { n: value.toString() })}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {summary ? (
         <div className="space-y-4 animate-fade-in">
-          <div className="flex items-center gap-2">
-            <span
-              className={`text-xs font-medium px-2.5 py-1 rounded-full ${summaryEmotionClasses[summary.emotion]}`}
-            >
-              {t(`summary.emotions.${summary.emotion}` as never)}
-            </span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-muted-foreground">{t("summary.emotionLabel")}</span>
+            {summaryEmotions.map((emotion) => (
+              <button
+                key={emotion}
+                onClick={() => handleSelectEmotion(emotion)}
+                className={`text-xs font-medium px-2.5 py-1 rounded-full border transition-colors ${
+                  summary.emotion === emotion
+                    ? `${summaryEmotionClasses[emotion]} border-current`
+                    : "border-border text-muted-foreground hover:bg-secondary hover:text-foreground"
+                }`}
+              >
+                {t(`summary.emotions.${emotion}` as never)}
+              </button>
+            ))}
+            {summaryMode === "translated" && (
+              <span className="text-xs text-muted-foreground">
+                {selectedLangLabel}
+                {translationLoading ? ` - ${t("summary.translationLoading")}` : ""}
+              </span>
+            )}
           </div>
 
           <div className="rounded-2xl border border-border bg-card p-5">
-            <p className="whitespace-pre-line text-sm leading-7 text-foreground/85">{summary.text}</p>
+            {translationError && (
+              <p className="mb-3 text-xs text-destructive">{translationError}</p>
+            )}
+            <p className="whitespace-pre-line text-sm leading-7 text-foreground/85">{displayText}</p>
           </div>
 
           <div className="rounded-2xl bg-card border border-border p-4">

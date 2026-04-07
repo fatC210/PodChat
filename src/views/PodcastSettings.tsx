@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ChevronDown, ChevronLeft, ChevronUp, Globe, Loader2, RotateCcw, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronUp, Globe, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 import { useAppData } from "@/lib/app-data";
 import { useBackNavigation } from "@/lib/navigation";
-import { canRegeneratePodcast, type PersonaSettings } from "@/lib/podchat-data";
+import { renamePodcastSpeaker, type PersonaSettings } from "@/lib/podchat-data";
 
 const personaFields: Array<keyof PersonaSettings> = [
   "personality",
@@ -25,15 +25,18 @@ export default function PodcastSettingsPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const goBack = useBackNavigation("/");
-  const { podcasts, hydrated, updatePodcast, regeneratePodcast, deletePodcast } = useAppData();
+  const { podcasts, hydrated, updatePodcast, deletePodcast } = useAppData();
   const podcast = podcasts.find((entry) => entry.id === params.id);
   const [showPages, setShowPages] = useState(false);
   const [persona, setPersona] = useState<PersonaSettings | null>(null);
-  const [regenerating, setRegenerating] = useState(false);
+  const [speakerNames, setSpeakerNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (podcast) {
       setPersona(podcast.persona);
+      setSpeakerNames(
+        Object.fromEntries(podcast.speakers.map((speaker) => [speaker.id, speaker.name])),
+      );
     }
   }, [podcast]);
 
@@ -64,6 +67,53 @@ export default function PodcastSettingsPage() {
     });
   };
 
+  const updateSpeakerField = (speakerId: string, value: string) => {
+    setSpeakerNames((current) => ({
+      ...current,
+      [speakerId]: value,
+    }));
+  };
+
+  const autoSaveSpeakerName = (speakerId: string) => {
+    if (!podcast) {
+      return;
+    }
+
+    const currentSpeaker = podcast.speakers.find((speaker) => speaker.id === speakerId);
+
+    if (!currentSpeaker) {
+      return;
+    }
+
+    const nextName = (speakerNames[speakerId] ?? currentSpeaker.name).trim();
+
+    if (!nextName) {
+      setSpeakerNames((current) => ({
+        ...current,
+        [speakerId]: currentSpeaker.name,
+      }));
+      toast.error(t("podSettings.speakerNameRequired"));
+      return;
+    }
+
+    if (nextName === currentSpeaker.name) {
+      if (speakerNames[speakerId] !== nextName) {
+        setSpeakerNames((current) => ({
+          ...current,
+          [speakerId]: nextName,
+        }));
+      }
+      return;
+    }
+
+    setSpeakerNames((current) => ({
+      ...current,
+      [speakerId]: nextName,
+    }));
+    updatePodcast(podcast.id, (current) => renamePodcastSpeaker(current, speakerId, nextName));
+    toast.success(t("settings.saved"));
+  };
+
   const handleDelete = () => {
     if (!podcast) {
       return;
@@ -71,23 +121,6 @@ export default function PodcastSettingsPage() {
 
     deletePodcast(podcast.id);
     router.push("/");
-  };
-
-  const handleRegenerate = async () => {
-    if (!podcast || regenerating || !canRegeneratePodcast(podcast)) {
-      return;
-    }
-
-    setRegenerating(true);
-
-    try {
-      await regeneratePodcast(podcast.id);
-      toast.success(t("podcast.regenerateStarted"));
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : t("podcast.regenerateFailed"));
-    } finally {
-      setRegenerating(false);
-    }
   };
 
   if (!hydrated) {
@@ -128,30 +161,6 @@ export default function PodcastSettingsPage() {
           </section>
         )}
 
-        {canRegeneratePodcast(podcast) && (
-          <section className="rounded-2xl border border-border bg-card p-4">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className="text-sm font-semibold text-foreground">{t("podSettings.regenerateTitle")}</h3>
-                <p className="text-xs text-muted-foreground mt-1">{t("podSettings.regenerateDesc")}</p>
-              </div>
-              <button
-                onClick={() => void handleRegenerate()}
-                disabled={regenerating}
-                aria-label={t("common.regenerate")}
-                title={t("common.regenerate")}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors disabled:opacity-60"
-              >
-                {regenerating ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RotateCcw className="h-4 w-4" />
-                )}
-              </button>
-            </div>
-          </section>
-        )}
-
         <section>
           <h3 className="text-sm font-semibold text-foreground mb-3">{t("podSettings.persona")}</h3>
           <div className="space-y-3">
@@ -178,33 +187,75 @@ export default function PodcastSettingsPage() {
         </section>
 
         <section>
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">{t("podSettings.speakers")}</h3>
+              <p className="text-xs text-muted-foreground mt-1">{t("podSettings.speakersDesc")}</p>
+            </div>
+          </div>
+
+          {podcast.speakers.length > 0 ? (
+            <div className="space-y-3">
+              {podcast.speakers.map((speaker) => {
+                const isAiHost = podcast.aiHostSpeakerId === speaker.id;
+                const isGuest = podcast.guestName === speaker.name;
+
+                return (
+                  <div key={speaker.id} className="rounded-2xl border border-border bg-card p-4">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-medium text-foreground">{speaker.id}</span>
+                          {isAiHost && (
+                            <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-semibold text-accent">
+                              {t("home.aiHost")}
+                            </span>
+                          )}
+                          {isGuest && (
+                            <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                              {t("podSettings.guest")}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          {speaker.duration} · {speaker.pct}%
+                        </p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">
+                        {t("podSettings.speakerName")}
+                      </label>
+                      <input
+                        type="text"
+                        value={speakerNames[speaker.id] ?? speaker.name}
+                        onChange={(event) => updateSpeakerField(speaker.id, event.target.value)}
+                        onBlur={() => autoSaveSpeakerName(speaker.id)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.currentTarget.blur();
+                          }
+                        }}
+                        placeholder={t("podSettings.speakerNamePlaceholder")}
+                        className="w-full h-10 px-3 rounded-lg bg-secondary border-0 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-accent"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="rounded-xl bg-secondary/50 px-4 py-3 text-xs text-muted-foreground">
+              {t("podSettings.noSpeakers")}
+            </div>
+          )}
+        </section>
+
+        <section>
           <h3 className="text-sm font-semibold text-foreground mb-3">{t("podSettings.knowledgeBase")}</h3>
 
-          <div className="space-y-3">
-            <div className="rounded-xl border border-border bg-card p-3">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-sm font-medium text-foreground">{t("podSettings.scriptChunks")}</span>
-                <span className="text-xs text-muted-foreground">({podcast.scriptChunks.length})</span>
-              </div>
-              <div className="mt-3 space-y-2">
-                {podcast.scriptChunks.length > 0 ? (
-                  podcast.scriptChunks.map((chunk) => (
-                    <div
-                      key={chunk.id}
-                      className="rounded-lg bg-secondary/50 px-3 py-2 text-xs leading-5 text-foreground"
-                    >
-                      <span className="mr-2 text-muted-foreground">#{chunk.id}</span>
-                      {chunk.text}
-                    </div>
-                  ))
-                ) : (
-                  <div className="rounded-lg bg-secondary/50 px-3 py-2 text-xs text-muted-foreground">
-                    {t("podSettings.emptyKnowledge")}
-                  </div>
-                )}
-              </div>
-            </div>
-
+          <div>
             <div>
               <button
                 onClick={() => setShowPages((current) => !current)}

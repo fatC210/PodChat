@@ -3,13 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Clock, User, Radio, Trash2, RotateCcw, Loader2 } from "lucide-react";
+import { Plus, Clock, Mic2, Users, Radio, Trash2, RotateCcw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 import SummaryButton from "@/components/SummaryButton";
 import { useAppData } from "@/lib/app-data";
 import {
   canRegeneratePodcast,
+  getPodcastSpeakerCount,
   getPodcastWorkflowIndex,
   getPodcastWorkflowStep,
   getPodcastWorkflowSteps,
@@ -103,6 +104,12 @@ export default function IndexPage() {
               const isClickable = podcast.status === "ready";
               const canRegenerate = canRegeneratePodcast(podcast);
               const isRegenerating = regeneratingId === podcast.id;
+              const speakerCount = getPodcastSpeakerCount(podcast);
+              const speakerCountLabel =
+                lang === "zh"
+                  ? `${speakerCount} 位说话人`
+                  : `${speakerCount} ${speakerCount === 1 ? "speaker" : "speakers"}`;
+              const aiHostRoleLabel = lang === "zh" ? "AI 主播" : "AI Host";
 
               return (
                 <div
@@ -114,9 +121,9 @@ export default function IndexPage() {
                   style={{ animationDelay: `${index * 80}ms` }}
                 >
                   <div
-                    className={`absolute inset-0 bg-gradient-to-r ${podcast.color} ${
+                    className={`absolute inset-0 rounded-2xl bg-gradient-to-r from-accent/12 via-primary/10 to-transparent ${
                       isClickable ? "opacity-0 group-hover:opacity-100" : "opacity-0"
-                    } transition-opacity duration-500 rounded-2xl overflow-hidden`}
+                    } transition-opacity duration-500 overflow-hidden`}
                   />
 
                   <div className="relative p-5 sm:p-6">
@@ -137,7 +144,7 @@ export default function IndexPage() {
                               : t("home.status.configuring")}
                           </span>
                         </div>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground ml-[26px] flex-wrap">
+                        <div className="ml-[26px] flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
                           <span className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
                             {podcast.duration}
@@ -148,13 +155,20 @@ export default function IndexPage() {
                               { month: "short", day: "numeric" },
                             )}
                           </span>
-                          {podcast.aiHost && (
-                            <span className="flex items-center gap-1">
-                              <User className="h-3 w-3" />
-                              {podcast.aiHost}
-                            </span>
-                          )}
+                          <span className="inline-flex items-center gap-1 rounded-full bg-secondary/80 px-2 py-1 text-[11px] text-muted-foreground">
+                            <Users className="h-3 w-3" />
+                            {speakerCountLabel}
+                          </span>
                         </div>
+                        {podcast.aiHost && (
+                          <div className="ml-[26px] mt-2 flex items-center gap-2 flex-wrap">
+                            <span className="inline-flex items-center gap-1 rounded-full border border-accent/20 bg-accent/10 px-2.5 py-1 text-[11px] font-medium text-accent">
+                              <Mic2 className="h-3 w-3" />
+                              {aiHostRoleLabel}
+                            </span>
+                            <span className="text-xs font-medium text-foreground">{podcast.aiHost}</span>
+                          </div>
+                        )}
                         {workflowStep && (
                           <div className="ml-[26px] mt-3 space-y-2">
                             <div className="flex items-center gap-2 text-[11px] text-muted-foreground">

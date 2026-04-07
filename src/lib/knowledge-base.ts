@@ -1,4 +1,4 @@
-import type { ScriptChunk, TranscriptLine } from "@/lib/podchat-data";
+import type { TranscriptLine } from "@/lib/podchat-data";
 
 export interface KnowledgeSignals {
   terms: string[];
@@ -7,12 +7,31 @@ export interface KnowledgeSignals {
 
 const genericTerms = new Set([
   "a",
+  "about",
+  "after",
+  "all",
+  "also",
+  "am",
   "an",
   "and",
+  "any",
   "api",
   "app",
   "article",
+  "are",
+  "as",
+  "at",
+  "be",
+  "because",
+  "been",
+  "before",
+  "being",
+  "between",
   "blog",
+  "both",
+  "but",
+  "by",
+  "can",
   "chat",
   "content",
   "conversation",
@@ -20,52 +39,155 @@ const genericTerms = new Set([
   "data",
   "demo",
   "details",
+  "did",
   "discussion",
   "docs",
+  "does",
+  "doing",
+  "done",
+  "down",
+  "during",
   "episode",
+  "even",
   "example",
+  "every",
+  "few",
+  "for",
+  "from",
   "guest",
   "guide",
+  "had",
+  "has",
+  "have",
+  "he",
+  "her",
+  "here",
+  "hers",
+  "him",
+  "his",
   "host",
+  "how",
+  "i",
   "idea",
+  "if",
   "info",
   "information",
+  "into",
   "interview",
+  "is",
   "issue",
   "item",
+  "it",
+  "its",
+  "itself",
+  "just",
   "knowledge",
   "learn",
   "lesson",
+  "let",
+  "lets",
   "link",
+  "like",
   "material",
+  "may",
+  "maybe",
+  "me",
+  "might",
   "method",
   "model",
+  "more",
+  "most",
+  "my",
+  "myself",
+  "need",
+  "never",
+  "new",
+  "no",
   "note",
+  "now",
+  "of",
+  "off",
+  "on",
+  "once",
+  "one",
+  "only",
+  "or",
+  "our",
+  "ours",
+  "ourselves",
   "page",
   "podcast",
+  "please",
   "product",
   "project",
   "question",
+  "really",
   "reference",
   "resource",
   "result",
   "script",
+  "see",
+  "she",
   "show",
+  "so",
+  "some",
+  "something",
   "site",
+  "still",
   "speaker",
+  "such",
   "step",
   "story",
   "summary",
   "system",
   "talk",
+  "than",
+  "that",
+  "the",
+  "their",
+  "theirs",
+  "them",
+  "themselves",
+  "then",
+  "there",
   "term",
   "text",
+  "than",
   "thing",
+  "think",
+  "this",
+  "those",
+  "three",
+  "through",
   "tip",
+  "to",
   "tool",
   "topic",
+  "two",
+  "up",
+  "us",
+  "very",
   "video",
+  "want",
+  "was",
+  "we",
+  "well",
+  "were",
+  "what",
+  "when",
+  "where",
+  "which",
+  "while",
+  "who",
+  "why",
+  "will",
+  "with",
+  "would",
   "website",
+  "you",
+  "your",
+  "yours",
+  "yourself",
 ]);
 
 const urlPattern = /\b((?:https?:\/\/|www\.)[^\s<>"')]+|(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<>"')]+)?)/gi;
@@ -117,6 +239,10 @@ function normalizeKnowledgeTerm(value: string) {
   return cleaned;
 }
 
+function tokenizeKnowledgeText(value: string) {
+  return value.toLowerCase().match(/[\p{L}\p{N}][\p{L}\p{N}+#.-]*/gu) ?? [];
+}
+
 function dedupeOrdered(values: string[]) {
   const seen = new Set<string>();
   const output: string[] = [];
@@ -147,12 +273,39 @@ export function extractExplicitLinks(text: string) {
 
 function extractProperNouns(text: string) {
   const matches = text.match(properNounPattern) ?? [];
+  const termCounts = new Map<string, number>();
 
-  return dedupeOrdered(
-    matches
-      .map((match) => normalizeKnowledgeTerm(match))
-      .filter(Boolean),
-  );
+  for (const match of matches) {
+    const normalized = normalizeKnowledgeTerm(match);
+
+    if (!normalized) {
+      continue;
+    }
+
+    termCounts.set(normalized, (termCounts.get(normalized) ?? 0) + 1);
+  }
+
+  return [...termCounts.entries()]
+    .filter(([term, count]) => {
+      if (/\s/.test(term)) {
+        return true;
+      }
+
+      if (/[+#.-]|\d/.test(term)) {
+        return true;
+      }
+
+      if (/^[A-Z]{2,}$/.test(term)) {
+        return true;
+      }
+
+      if (/^[A-Z][a-z]+(?:[A-Z][A-Za-z0-9]*)+$/.test(term)) {
+        return true;
+      }
+
+      return count >= 2;
+    })
+    .map(([term]) => term);
 }
 
 function looksLikeMeaningfulLine(line: string) {
@@ -175,8 +328,39 @@ function looksLikeMeaningfulLine(line: string) {
 
 export function findMatchedKnowledgeTerms(text: string, terms: string[]) {
   const normalizedText = text.toLowerCase();
+  const textTokens = new Set(tokenizeKnowledgeText(text));
 
-  return terms.filter((term) => normalizedText.includes(term.toLowerCase()));
+  return terms.filter((term) => {
+    const normalizedTerm = term.toLowerCase();
+
+    if (normalizedText.includes(normalizedTerm)) {
+      return true;
+    }
+
+    const tokens = dedupeOrdered(
+      tokenizeKnowledgeText(term).filter((token) => token.length > 2 && !genericTerms.has(token)),
+    );
+
+    if (tokens.length === 0) {
+      return false;
+    }
+
+    const matchedTokenCount = tokens.filter((token) => textTokens.has(token)).length;
+
+    if (tokens.length === 1) {
+      return matchedTokenCount === 1;
+    }
+
+    if (tokens.length === 2) {
+      return matchedTokenCount === 2;
+    }
+
+    if (tokens.length <= 4) {
+      return matchedTokenCount >= 2;
+    }
+
+    return matchedTokenCount >= 3;
+  });
 }
 
 export function extractKnowledgeExcerpt(markdown: string, terms: string[]) {
@@ -201,33 +385,27 @@ export function buildKnowledgeSignals(input: {
   podcastTitle: string;
   podcastTopic: string;
   transcript: TranscriptLine[];
-  scriptChunks: ScriptChunk[];
   rawTerms?: string[] | null;
   rawLinks?: string[] | null;
 }): KnowledgeSignals {
   const transcriptText = input.transcript.map((line) => line.text).join("\n");
-  const scriptText = input.scriptChunks.map((chunk) => chunk.text).join("\n");
+  const prioritizedTerms = [input.podcastTopic, input.podcastTitle]
+    .map((term) => normalizeKnowledgeTerm(term))
+    .filter(Boolean);
   const extractedTerms = dedupeOrdered(
     [
       ...(input.rawTerms ?? []),
-      ...extractProperNouns(scriptText),
+      ...prioritizedTerms,
       ...extractProperNouns(transcriptText),
     ]
       .map((term) => normalizeKnowledgeTerm(term))
       .filter(Boolean),
   );
-  const fallbackTerms = extractedTerms.length === 0
-    ? [input.podcastTitle, input.podcastTopic]
-        .map((term) => normalizeKnowledgeTerm(term))
-        .filter(Boolean)
-    : [];
-
-  const terms = dedupeOrdered([...extractedTerms, ...fallbackTerms]).slice(0, 8);
+  const terms = extractedTerms.slice(0, 10);
 
   const links = dedupeOrdered(
     [
       ...(input.rawLinks ?? []),
-      ...extractExplicitLinks(scriptText),
       ...extractExplicitLinks(transcriptText),
     ]
       .map((link) => normalizeKnowledgeLink(link))
@@ -242,16 +420,33 @@ export function buildKnowledgeSignals(input: {
 
 export function buildKnowledgeSearchQueries(signals: KnowledgeSignals) {
   const linkQueries = signals.links.slice(0, 2);
-  const termQuery = signals.terms
-    .slice(0, 4)
-    .map((term) => (/\s/.test(term) ? `"${term}"` : term))
+  const phraseTerms = signals.terms.filter((term) => /\s/.test(term));
+  const primaryPhrase = phraseTerms[0] ?? "";
+  const alternatePhrase = phraseTerms.find((term) => term !== primaryPhrase) ?? "";
+  const focusedTerms = signals.terms
+    .filter((term) => term !== primaryPhrase)
+    .slice(0, primaryPhrase ? 3 : 4);
+  const formatQueryTerm = (term: string) => {
+    const wordCount = term.trim().split(/\s+/).length;
+
+    if (!/\s/.test(term)) {
+      return term;
+    }
+
+    return wordCount <= 4 ? `"${term}"` : term;
+  };
+  const termQuery = [primaryPhrase, ...focusedTerms]
+    .filter(Boolean)
+    .map((term) => formatQueryTerm(term))
     .join(" ")
     .trim();
 
   return dedupeOrdered([
     ...linkQueries,
     ...(termQuery ? [termQuery] : []),
-  ]).slice(0, 3);
+    ...(primaryPhrase ? [formatQueryTerm(primaryPhrase)] : []),
+    ...(alternatePhrase ? [formatQueryTerm(alternatePhrase)] : []),
+  ]).slice(0, 4);
 }
 
 function normalizeHost(url: string) {

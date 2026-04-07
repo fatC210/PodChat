@@ -3,10 +3,15 @@ import {
   buildPodcastFromWizard,
   canRegeneratePodcast,
   getDominantSpeakerId,
+  getPodcastSpeakerCount,
   getPreferredAiHostSpeakerId,
+  getSummaryTranslation,
   isPodcastReady,
   normalizePodcastSummaries,
+  renamePodcastSpeaker,
   resetPodcastForProcessing,
+  setPodcastSummaryEmotion,
+  upsertSummaryTranslation,
 } from "@/lib/podchat-data";
 
 describe("buildPodcastFromWizard", () => {
@@ -129,6 +134,103 @@ describe("normalizePodcastSummaries", () => {
 
     expect(summaries[0]?.text).toBe("The episode opens with the main problem. It closes on the practical lesson for listeners.");
   });
+
+  it("preserves cached translations when normalizing summaries", () => {
+    const summaries = normalizePodcastSummaries([
+      {
+        duration: 3,
+        emotion: "reflective",
+        text: "Short summary",
+        translations: {
+          zh: "简短摘要",
+          es: "Resumen corto",
+          empty: "",
+        },
+      },
+    ]);
+
+    expect(summaries[0]?.translations).toEqual({
+      zh: "简短摘要",
+      es: "Resumen corto",
+    });
+  });
+});
+
+describe("summary translation helpers", () => {
+  it("reads a cached translation by language code", () => {
+    const translation = getSummaryTranslation(
+      {
+        duration: 3,
+        emotion: "reflective",
+        text: "Summary",
+        translations: {
+          zh: "摘要",
+        },
+      },
+      "zh",
+    );
+
+    expect(translation).toBe("摘要");
+  });
+
+  it("stores a translated summary without discarding older languages", () => {
+    const summary = upsertSummaryTranslation(
+      {
+        duration: 3,
+        emotion: "reflective",
+        text: "Summary",
+        translations: {
+          zh: "摘要",
+        },
+      },
+      "es",
+      "Resumen",
+    );
+
+    expect(summary.translations).toEqual({
+      zh: "摘要",
+      es: "Resumen",
+    });
+  });
+});
+
+describe("setPodcastSummaryEmotion", () => {
+  it("applies one shared emotion across all generated summaries without changing text", () => {
+    const summaries = setPodcastSummaryEmotion(
+      [
+        {
+          duration: 1,
+          emotion: "reflective",
+          text: "Short summary",
+        },
+        {
+          duration: 3,
+          emotion: "reflective",
+          text: "Longer summary",
+          translations: {
+            zh: "更长的摘要",
+          },
+        },
+      ],
+      "excited",
+    );
+
+    expect(summaries).toEqual([
+      {
+        duration: 1,
+        emotion: "excited",
+        text: "Short summary",
+      },
+      {
+        duration: 3,
+        emotion: "excited",
+        text: "Longer summary",
+        translations: {
+          zh: "更长的摘要",
+        },
+      },
+    ]);
+  });
 });
 
 describe("AI host speaker selection", () => {
@@ -160,6 +262,199 @@ describe("AI host speaker selection", () => {
         speakers,
       }),
     ).toBe("speaker-2");
+  });
+});
+
+describe("renamePodcastSpeaker", () => {
+  it("updates the speaker sample, transcript labels, and related metadata together", () => {
+    const podcast = buildPodcastFromWizard({
+      title: "Rename Speakers",
+      type: "multi",
+      referenceCount: 2,
+      sourceFileName: "rename.mp3",
+      sourceFileSizeMb: 8,
+      personaPresetId: "professional",
+      personaLocale: "en",
+      customPersonality: "",
+      customCatchphrases: "",
+      customAnswerStyle: "",
+    });
+
+    podcast.aiHost = "Speaker 1";
+    podcast.aiHostSpeakerId = "speaker-1";
+    podcast.guestName = "Speaker 2";
+    podcast.speakerFilter = "Speaker 2";
+    podcast.speakers = [
+      { id: "speaker-1", name: "Speaker 1", pct: 55, preview: "Welcome", duration: "01:40" },
+      { id: "speaker-2", name: "Speaker 2", pct: 45, preview: "Thanks", duration: "01:20" },
+    ];
+    podcast.transcript = [
+      {
+        id: "line-1",
+        speakerId: "speaker-1",
+        speaker: "Speaker 1",
+        color: "text-accent",
+        time: "00:00",
+        text: "Welcome back",
+        translation: "Welcome back",
+      },
+      {
+        id: "line-2",
+        speakerId: "speaker-2",
+        speaker: "Speaker 2",
+        color: "text-info",
+        time: "00:04",
+        text: "Thanks for having me",
+        translation: "Thanks for having me",
+      },
+    ];
+
+    const renamedPodcast = renamePodcastSpeaker(podcast, "speaker-2", "Jane");
+
+    expect(renamedPodcast.speakers[1]?.name).toBe("Jane");
+    expect(renamedPodcast.transcript[1]?.speaker).toBe("Jane");
+    expect(renamedPodcast.aiHost).toBe("Speaker 1");
+    expect(renamedPodcast.guestName).toBe("Jane");
+    expect(renamedPodcast.speakerFilter).toBe("Jane");
+  });
+
+  it("updates the AI host label when the selected host speaker is renamed", () => {
+    const podcast = buildPodcastFromWizard({
+      title: "Rename Host",
+      type: "solo",
+      referenceCount: 1,
+      sourceFileName: "host.mp3",
+      sourceFileSizeMb: 6,
+      personaPresetId: "professional",
+      personaLocale: "en",
+      customPersonality: "",
+      customCatchphrases: "",
+      customAnswerStyle: "",
+    });
+
+    podcast.aiHost = "Speaker 1";
+    podcast.aiHostSpeakerId = "speaker-1";
+    podcast.speakers = [
+      { id: "speaker-1", name: "Speaker 1", pct: 100, preview: "Hello", duration: "03:00" },
+    ];
+    podcast.transcript = [
+      {
+        id: "line-1",
+        speakerId: "speaker-1",
+        speaker: "Speaker 1",
+        color: "text-accent",
+        time: "00:00",
+        text: "Hello",
+        translation: "Hello",
+      },
+    ];
+
+    const renamedPodcast = renamePodcastSpeaker(podcast, "speaker-1", "Alex");
+
+    expect(renamedPodcast.aiHost).toBe("Alex");
+    expect(renamedPodcast.transcript[0]?.speaker).toBe("Alex");
+  });
+});
+
+describe("getPodcastSpeakerCount", () => {
+  it("prefers detected speaker samples when they exist", () => {
+    const podcast = buildPodcastFromWizard({
+      title: "Detected Speakers",
+      type: "multi",
+      referenceCount: 4,
+      sourceFileName: "detected.mp3",
+      sourceFileSizeMb: 10,
+      personaPresetId: "professional",
+      personaLocale: "en",
+      customPersonality: "",
+      customCatchphrases: "",
+      customAnswerStyle: "",
+    });
+
+    podcast.speakers = [
+      { id: "speaker-1", name: "Speaker 1", pct: 40, preview: "A", duration: "01:00" },
+      { id: "speaker-2", name: "Speaker 2", pct: 35, preview: "B", duration: "00:50" },
+      { id: "speaker-3", name: "Speaker 3", pct: 25, preview: "C", duration: "00:40" },
+    ];
+
+    expect(getPodcastSpeakerCount(podcast)).toBe(3);
+  });
+
+  it("falls back to unique transcript speakers before using the reference count", () => {
+    const podcast = buildPodcastFromWizard({
+      title: "Transcript Speakers",
+      type: "multi",
+      referenceCount: 4,
+      sourceFileName: "transcript.mp3",
+      sourceFileSizeMb: 10,
+      personaPresetId: "professional",
+      personaLocale: "en",
+      customPersonality: "",
+      customCatchphrases: "",
+      customAnswerStyle: "",
+    });
+
+    podcast.transcript = [
+      {
+        id: "line-1",
+        speakerId: "speaker-1",
+        speaker: "Speaker 1",
+        color: "text-accent",
+        time: "00:00",
+        text: "Hello",
+        translation: "Hello",
+      },
+      {
+        id: "line-2",
+        speakerId: "speaker-2",
+        speaker: "Speaker 2",
+        color: "text-info",
+        time: "00:02",
+        text: "Hi",
+        translation: "Hi",
+      },
+      {
+        id: "line-3",
+        speakerId: "speaker-1",
+        speaker: "Speaker 1",
+        color: "text-accent",
+        time: "00:04",
+        text: "Back again",
+        translation: "Back again",
+      },
+    ];
+
+    expect(getPodcastSpeakerCount(podcast)).toBe(2);
+  });
+
+  it("uses a sensible fallback before speaker detection finishes", () => {
+    const soloPodcast = buildPodcastFromWizard({
+      title: "Solo",
+      type: "solo",
+      referenceCount: 5,
+      sourceFileName: "solo.mp3",
+      sourceFileSizeMb: 4,
+      personaPresetId: "professional",
+      personaLocale: "en",
+      customPersonality: "",
+      customCatchphrases: "",
+      customAnswerStyle: "",
+    });
+    const multiPodcast = buildPodcastFromWizard({
+      title: "Estimated Multi",
+      type: "multi",
+      referenceCount: 3,
+      sourceFileName: "multi.mp3",
+      sourceFileSizeMb: 9,
+      personaPresetId: "professional",
+      personaLocale: "en",
+      customPersonality: "",
+      customCatchphrases: "",
+      customAnswerStyle: "",
+    });
+
+    expect(getPodcastSpeakerCount(soloPodcast)).toBe(1);
+    expect(getPodcastSpeakerCount(multiPodcast)).toBe(3);
   });
 });
 

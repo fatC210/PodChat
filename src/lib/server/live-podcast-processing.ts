@@ -52,9 +52,6 @@ interface StructuredPodcastMetadataOutput {
     title: string;
     lineId?: string;
   }>;
-  scriptChunks?: Array<{
-    text: string;
-  }>;
   knowledgeSignals?: {
     terms?: string[];
     links?: string[];
@@ -143,7 +140,6 @@ async function searchKnowledgePages(
   podcast: Podcast,
   settings: IntegrationSettings,
   transcript: TranscriptLine[],
-  scriptChunks: ScriptChunk[],
   rawSignals?: StructuredPodcastMetadataOutput["knowledgeSignals"],
 ) {
   if (!settings.firecrawl?.trim()) {
@@ -154,7 +150,6 @@ async function searchKnowledgePages(
     podcastTitle: podcast.title,
     podcastTopic: podcast.topic,
     transcript,
-    scriptChunks,
     rawTerms: rawSignals?.terms,
     rawLinks: rawSignals?.links,
   });
@@ -202,7 +197,6 @@ async function searchKnowledgePagesSafely(input: {
   podcast: Podcast;
   settings: IntegrationSettings;
   transcript: TranscriptLine[];
-  scriptChunks: ScriptChunk[];
   rawSignals?: StructuredPodcastMetadataOutput["knowledgeSignals"];
 }) {
   try {
@@ -210,7 +204,6 @@ async function searchKnowledgePagesSafely(input: {
       input.podcast,
       input.settings,
       input.transcript,
-      input.scriptChunks,
       input.rawSignals,
     );
   } catch (error) {
@@ -292,16 +285,6 @@ function sanitizeSummaries(
   );
 }
 
-function sanitizeScriptChunks(rawChunks: StructuredPodcastMetadataOutput["scriptChunks"]) {
-  return (rawChunks ?? [])
-    .slice(0, 6)
-    .map((chunk, index) => ({
-      id: index + 1,
-      text: chunk.text?.trim() || "",
-    }))
-    .filter((chunk) => chunk.text);
-}
-
 function sanitizeChapters(rawChapters: StructuredPodcastMetadataOutput["chapters"], transcript: TranscriptLine[]) {
   const chapterByLineId = new Map(transcript.map((line) => [line.id, line.time]));
 
@@ -330,10 +313,9 @@ async function requestStructuredPodcastMetadata(input: {
         role: "system",
         content: [
           "You are structuring a processed podcast for a web application.",
-          "Return JSON with these keys only: topic, aiHost, guestName, chapters, scriptChunks, knowledgeSignals.",
+          "Return JSON with these keys only: topic, aiHost, guestName, chapters, knowledgeSignals.",
           "aiHost and guestName must be chosen from the speaker labels already present in the transcript, such as Speaker 1 or Speaker 2. Do not invent new names.",
           "chapters: array of objects with title and lineId.",
-          "scriptChunks: 3 to 6 concise lines copied or tightly paraphrased from the transcript to seed an AI host knowledge base.",
           "knowledgeSignals: object with arrays named terms and links. Include only technical terms, products, people, organizations, documents, URLs, or domains explicitly mentioned in the transcript. Never include generic filler like podcast, episode, host, guest, summary, discussion.",
           "Use the transcript only. Do not invent details beyond the provided material.",
         ].join(" "),
@@ -448,12 +430,10 @@ export async function generateLivePodcastOutput(input: {
     guestLabel,
   );
   const chapters = sanitizeChapters(structuredMetadata.chapters, presentedSpeakers.transcript);
-  const scriptChunks = sanitizeScriptChunks(structuredMetadata.scriptChunks);
   const crawledPages = await searchKnowledgePagesSafely({
     podcast,
     settings,
     transcript: neutralSpeakerPresentation.transcript,
-    scriptChunks,
     rawSignals: structuredMetadata.knowledgeSignals,
   });
   const aiHostSpeaker = presentedSpeakers.speakers.find((speaker) => speaker.name === aiHostLabel) ?? presentedSpeakers.speakers[0] ?? null;
@@ -473,7 +453,7 @@ export async function generateLivePodcastOutput(input: {
     transcript: presentedSpeakers.transcript,
     chapters: chapters.length > 0 ? chapters : deriveTranscriptChapters(presentedSpeakers.transcript),
     summaries,
-    scriptChunks,
+    scriptChunks: [],
     crawledPages,
     speakers: presentedSpeakers.speakers,
   } satisfies LiveProcessingOutput;

@@ -79,6 +79,7 @@ export interface PodcastSummary {
   duration: number;
   emotion: SummaryEmotion;
   text: string;
+  translations?: Record<string, string>;
 }
 
 interface SummarySegmentInput {
@@ -92,6 +93,7 @@ export interface PodcastSummaryInput {
   emotion?: string | null;
   text?: string | null;
   segments?: SummarySegmentInput[] | null;
+  translations?: Record<string, string | null | undefined> | null;
 }
 
 export interface Podcast {
@@ -210,6 +212,61 @@ export const targetLangs = [
   { code: "fr", label: "Français" },
   { code: "de", label: "Deutsch" },
 ] as const;
+
+function normalizeSummaryTranslations(
+  translations: Record<string, string | null | undefined> | null | undefined,
+) {
+  return Object.fromEntries(
+    Object.entries(translations ?? {})
+      .map(([lang, text]) => [lang.trim().toLowerCase(), text?.trim() ?? ""] as const)
+      .filter(([lang, text]) => Boolean(lang && text)),
+  );
+}
+
+export function isSupportedTargetLang(targetLang: string | null | undefined) {
+  const normalizedTargetLang = targetLang?.trim().toLowerCase();
+
+  return Boolean(
+    normalizedTargetLang &&
+      targetLangs.some((lang) => lang.code === normalizedTargetLang),
+  );
+}
+
+export function getTargetLangLabel(targetLang: string) {
+  const normalizedTargetLang = targetLang.trim().toLowerCase();
+  return targetLangs.find((lang) => lang.code === normalizedTargetLang)?.label ?? normalizedTargetLang.toUpperCase();
+}
+
+export function getSummaryTranslation(summary: PodcastSummary, targetLang: string | null | undefined) {
+  const normalizedTargetLang = targetLang?.trim().toLowerCase();
+
+  if (!normalizedTargetLang) {
+    return null;
+  }
+
+  return summary.translations?.[normalizedTargetLang]?.trim() || null;
+}
+
+export function upsertSummaryTranslation(
+  summary: PodcastSummary,
+  targetLang: string,
+  translatedText: string,
+): PodcastSummary {
+  const normalizedTargetLang = targetLang.trim().toLowerCase();
+  const normalizedText = translatedText.trim();
+
+  if (!normalizedTargetLang || !normalizedText) {
+    return summary;
+  }
+
+  return {
+    ...summary,
+    translations: {
+      ...(summary.translations ?? {}),
+      [normalizedTargetLang]: normalizedText,
+    },
+  };
+}
 
 export const personaPresets: PersonaPreset[] = [
   {
@@ -417,9 +474,24 @@ export function normalizePodcastSummaries(summaries: PodcastSummaryInput[]): Pod
           .replace(/[ \t]+\n/g, "\n")
           .replace(/\n{3,}/g, "\n\n")
           .trim(),
+        translations: normalizeSummaryTranslations(summary.translations),
       };
     })
     .filter((summary) => Boolean(summary.text));
+}
+
+export function setPodcastSummaryEmotion(
+  summaries: PodcastSummary[],
+  emotion: SummaryEmotion,
+): PodcastSummary[] {
+  return summaries.map((summary) =>
+    summary.emotion === emotion
+      ? summary
+      : {
+          ...summary,
+          emotion,
+        },
+  );
 }
 
 export function timeToSeconds(value: string) {
@@ -639,6 +711,99 @@ export function getPreferredAiHostSpeakerId(
   }
 
   return getDominantSpeakerId(podcast.speakers);
+}
+
+export function renamePodcastSpeaker(
+  podcast: Podcast,
+  speakerId: string,
+  nextName: string,
+): Podcast {
+  const normalizedName = nextName.trim();
+
+  if (!normalizedName) {
+    return podcast;
+  }
+
+  const targetSpeaker = podcast.speakers.find((speaker) => speaker.id === speakerId);
+
+  if (!targetSpeaker) {
+    return podcast;
+  }
+
+  const currentName = targetSpeaker.name;
+  let changed = false;
+
+  const speakers = podcast.speakers.map((speaker) => {
+    if (speaker.id !== speakerId || speaker.name === normalizedName) {
+      return speaker;
+    }
+
+    changed = true;
+    return {
+      ...speaker,
+      name: normalizedName,
+    };
+  });
+
+  const transcript = podcast.transcript.map((line) => {
+    const matchesSpeaker =
+      line.speakerId === speakerId || (!line.speakerId && line.speaker === currentName);
+
+    if (!matchesSpeaker || line.speaker === normalizedName) {
+      return line;
+    }
+
+    changed = true;
+    return {
+      ...line,
+      speaker: normalizedName,
+    };
+  });
+
+  const aiHost =
+    podcast.aiHostSpeakerId === speakerId || podcast.aiHost === currentName
+      ? normalizedName
+      : podcast.aiHost;
+  const guestName = podcast.guestName === currentName ? normalizedName : podcast.guestName;
+  const speakerFilter = podcast.speakerFilter === currentName ? normalizedName : podcast.speakerFilter;
+
+  if (
+    !changed &&
+    aiHost === podcast.aiHost &&
+    guestName === podcast.guestName &&
+    speakerFilter === podcast.speakerFilter
+  ) {
+    return podcast;
+  }
+
+  return {
+    ...podcast,
+    aiHost,
+    guestName,
+    speakerFilter,
+    speakers,
+    transcript,
+  };
+}
+
+export function getPodcastSpeakerCount(
+  podcast: Pick<Podcast, "speakers" | "transcript" | "type" | "referenceCount">,
+) {
+  if (podcast.speakers.length > 0) {
+    return podcast.speakers.length;
+  }
+
+  const transcriptSpeakerCount = new Set(
+    podcast.transcript
+      .map((line) => line.speakerId?.trim() || line.speaker?.trim() || "")
+      .filter(Boolean),
+  ).size;
+
+  if (transcriptSpeakerCount > 0) {
+    return transcriptSpeakerCount;
+  }
+
+  return podcast.type === "solo" ? 1 : Math.max(1, podcast.referenceCount);
 }
 
 export function getSummary(podcast: Podcast, duration: number) {

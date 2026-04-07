@@ -1,9 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { NextResponse } from "next/server";
-import { getSummary, isPodcastReady, summaryDurations } from "@/lib/podchat-data";
+import { getSummary, isPodcastReady, normalizeSummaryEmotion, summaryDurations } from "@/lib/podchat-data";
 import { getStoredPodcast } from "@/lib/server/podcast-store";
 import { readStoredIntegrationSettings } from "@/lib/server/settings-store";
 import { synthesizeTextWithElevenLabs } from "@/lib/server/elevenlabs";
+import { ensureSummaryTranslation } from "@/lib/server/summary-translations";
 
 export async function GET(
   request: Request,
@@ -35,12 +36,28 @@ export async function GET(
     }
 
     const settings = await readStoredIntegrationSettings();
-    const text = summary.text;
+    const targetLang = url.searchParams.get("lang")?.trim() ?? "";
+    const requestedEmotion = url.searchParams.get("emotion");
+    const normalizedEmotion = normalizeSummaryEmotion(requestedEmotion);
+
+    if (requestedEmotion && !normalizedEmotion) {
+      return NextResponse.json({ error: "Summary emotion is invalid." }, { status: 400 });
+    }
+
+    const playbackEmotion = normalizedEmotion ?? summary.emotion;
+    const resolvedSummaryText = targetLang
+      ? (await ensureSummaryTranslation({
+          podcast,
+          duration,
+          targetLang,
+          settings,
+        })).text
+      : summary.text;
     const synthesis = await synthesizeTextWithElevenLabs(settings, {
-      text,
-      cacheKeyParts: ["summary-audio", podcast.id, String(duration)],
+      text: resolvedSummaryText,
+      cacheKeyParts: ["summary-audio", podcast.id, String(duration), targetLang || "original", playbackEmotion],
       voiceIdOverride: podcast.aiHostVoiceId,
-      emotion: summary.emotion,
+      emotion: playbackEmotion,
     });
     const audioBytes = await readFile(synthesis.audioPath);
 

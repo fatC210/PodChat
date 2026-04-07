@@ -35,6 +35,7 @@ import {
   timeToSeconds,
   type TranscriptMode,
 } from "@/lib/podchat-data";
+import { isMediaPlaybackInterruption } from "@/lib/utils";
 
 const speeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
@@ -73,6 +74,8 @@ export default function ListenPage() {
   const activeLineRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const previewAudioRef = useRef<HTMLAudioElement>(null);
+  const previewPlayRequestIdRef = useRef(0);
+  const transcriptAutoScrollEnabledRef = useRef(false);
   const initializedPodcastIdRef = useRef<string | null>(null);
   const podcastId = podcast?.id;
   const storedProgress = podcast?.progressPercent ?? 0;
@@ -101,11 +104,13 @@ export default function ListenPage() {
     setTargetLang(podcast.targetLang ?? "zh");
     setSpeakerFilter(podcast.speakerFilter ?? null);
     setSelectedSpeakerId(getPreferredAiHostSpeakerId(podcast) ?? "");
+    transcriptAutoScrollEnabledRef.current = false;
     setVoiceSettingsOpen(false);
     setCloningVoice(false);
     setPreviewPlayingSpeakerId(null);
     setPreviewLoadingSpeakerId(null);
     setPreviewError(null);
+    previewPlayRequestIdRef.current += 1;
     if (previewAudioRef.current) {
       previewAudioRef.current.pause();
       previewAudioRef.current.removeAttribute("src");
@@ -194,12 +199,14 @@ export default function ListenPage() {
   }, [speed]);
 
   useEffect(() => {
-    if (activeLineRef.current) {
-      activeLineRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
+    if (!transcriptAutoScrollEnabledRef.current || !activeLineRef.current) {
+      return;
     }
+
+    activeLineRef.current.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
   }, [activeLineIndex]);
 
   useEffect(() => {
@@ -234,6 +241,7 @@ export default function ListenPage() {
       return;
     }
 
+    transcriptAutoScrollEnabledRef.current = true;
     const rect = progressRef.current.getBoundingClientRect();
     const nextProgress = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
     const audio = audioRef.current;
@@ -252,6 +260,7 @@ export default function ListenPage() {
       return;
     }
 
+    transcriptAutoScrollEnabledRef.current = true;
     const rect = progressRef.current.getBoundingClientRect();
     const nextProgress = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
     const audio = audioRef.current;
@@ -361,6 +370,30 @@ export default function ListenPage() {
     audio.pause();
   };
 
+  const handleTranscriptLineClick = async (lineTime: string, isActive: boolean) => {
+    const audio = audioRef.current;
+
+    if (!audio) {
+      return;
+    }
+
+    transcriptAutoScrollEnabledRef.current = true;
+
+    if (isActive && !audio.ended) {
+      await togglePlayback();
+      return;
+    }
+
+    if (totalDuration === 0) {
+      return;
+    }
+
+    const nextTime = timeToSeconds(lineTime);
+    audio.currentTime = nextTime;
+    setCurrentTimeSeconds(nextTime);
+    setProgress((nextTime / totalDuration) * 100);
+  };
+
   const toggleSpeakerPreview = async (speakerId: string) => {
     const previewAudio = previewAudioRef.current;
 
@@ -369,10 +402,13 @@ export default function ListenPage() {
     }
 
     if (previewPlayingSpeakerId === speakerId) {
+      previewPlayRequestIdRef.current += 1;
       previewAudio.pause();
       return;
     }
 
+    const requestId = previewPlayRequestIdRef.current + 1;
+    previewPlayRequestIdRef.current = requestId;
     setPreviewError(null);
     setPreviewLoadingSpeakerId(speakerId);
 
@@ -384,17 +420,24 @@ export default function ListenPage() {
         previewAudio.pause();
         previewAudio.src = `/api/podcasts/${podcast.id}/speaker-preview?speakerId=${encodeURIComponent(speakerId)}`;
         previewAudio.dataset.speakerId = speakerId;
-        previewAudio.load();
+      } else if (previewAudio.ended) {
+        previewAudio.currentTime = 0;
       }
 
       await previewAudio.play();
     } catch (error) {
+      if (previewPlayRequestIdRef.current !== requestId || isMediaPlaybackInterruption(error)) {
+        return;
+      }
+
       const message = error instanceof Error ? error.message : t("listen.previewUnavailable");
       setPreviewError(message);
       setPreviewPlayingSpeakerId(null);
       toast.error(message);
     } finally {
-      setPreviewLoadingSpeakerId((current) => (current === speakerId ? null : current));
+      if (previewPlayRequestIdRef.current === requestId) {
+        setPreviewLoadingSpeakerId((current) => (current === speakerId ? null : current));
+      }
     }
   };
 
@@ -477,6 +520,147 @@ export default function ListenPage() {
     (line) => !speakerFilter || line.speaker === speakerFilter,
   );
 
+  const voiceSettingsSection = (
+    <div className="rounded-2xl border border-border bg-card p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 space-y-2">
+          <div>
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+              {t("podSettings.aiHostVoice")}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2 text-[11px]">
+            <span className="rounded-full bg-secondary px-2.5 py-1 text-muted-foreground">
+              {t("podSettings.currentAiHost", {
+                name: podcast.aiHost ?? t("podSettings.notAssigned"),
+              })}
+            </span>
+            <span className="rounded-full bg-secondary px-2.5 py-1 text-muted-foreground">
+              {t("podSettings.currentVoice", {
+                name: podcast.aiHostVoiceName ?? t("podSettings.notClonedYet"),
+              })}
+            </span>
+            {selectedSpeaker && (
+              <span className="rounded-full bg-accent/10 px-2.5 py-1 text-accent">
+                {t("listen.selectedHost")}: {selectedSpeaker.name}
+              </span>
+            )}
+          </div>
+
+          {previewError && <p className="text-xs text-destructive">{previewError}</p>}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setVoiceSettingsOpen((current) => !current)}
+          className="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg bg-secondary text-foreground text-xs font-medium hover:bg-secondary/80 transition-colors shrink-0"
+          aria-expanded={voiceSettingsOpen}
+        >
+          {voiceSettingsOpen ? t("listen.hideVoiceSettings") : t("listen.manageVoice")}
+          <ChevronDown className={`h-3.5 w-3.5 transition-transform ${voiceSettingsOpen ? "rotate-180" : ""}`} />
+        </button>
+      </div>
+
+      {voiceSettingsOpen && (
+        <div className="mt-4 border-t border-border/70 pt-4 space-y-3">
+          <div className="grid gap-2 md:grid-cols-2">
+            {podcast.speakers.map((speaker) => {
+              const isSelected = selectedSpeakerId === speaker.id;
+              const isCurrentHost = podcast.aiHostSpeakerId === speaker.id;
+              const isRecommended = dominantSpeakerId === speaker.id;
+              const isPreviewLoading = previewLoadingSpeakerId === speaker.id;
+              const isPreviewPlaying = previewPlayingSpeakerId === speaker.id;
+
+              return (
+                <div
+                  key={speaker.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    setSelectedSpeakerId(speaker.id);
+                    setPreviewError(null);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setSelectedSpeakerId(speaker.id);
+                      setPreviewError(null);
+                    }
+                  }}
+                  className={`rounded-xl border p-3 transition-colors ${
+                    isSelected
+                      ? "border-accent bg-accent/5"
+                      : "border-border bg-background/40 hover:bg-secondary/50"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-semibold text-foreground">{speaker.name}</p>
+                        {isCurrentHost && (
+                          <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-semibold text-accent">
+                            {t("listen.currentHost")}
+                          </span>
+                        )}
+                        {isRecommended && (
+                          <span className="rounded-full bg-info/10 px-2 py-0.5 text-[10px] font-semibold text-info">
+                            {t("listen.recommendedHost")}
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">{speaker.preview}</p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-sm font-semibold text-foreground">{speaker.pct}%</p>
+                      <p className="text-[11px] text-muted-foreground">{speaker.duration}</p>
+                    </div>
+                  </div>
+
+                  <div className={`mt-3 flex items-center gap-3 ${isSelected ? "justify-between" : "justify-end"}`}>
+                    {isSelected && (
+                      <span className="text-xs font-medium text-accent">
+                        {t("listen.selectedHost")}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void toggleSpeakerPreview(speaker.id);
+                      }}
+                      className="inline-flex items-center gap-2 h-8 px-3 rounded-lg bg-secondary text-foreground text-xs font-medium hover:bg-secondary/80 transition-colors"
+                    >
+                      {isPreviewLoading ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : isPreviewPlaying ? (
+                        <Pause className="h-3.5 w-3.5" />
+                      ) : (
+                        <Play className="h-3.5 w-3.5" />
+                      )}
+                      {t("wizard.host.preview")}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              onClick={() => void handleCloneVoice()}
+              disabled={!selectedSpeakerId || cloningVoice}
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-accent text-accent-foreground text-sm font-medium disabled:opacity-50 hover:opacity-90 transition-opacity"
+            >
+              {cloningVoice ? <Loader2 className="h-4 w-4 animate-spin" /> : <Volume2 className="h-4 w-4" />}
+              {t("podSettings.cloneHostVoice")}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="max-w-screen-lg mx-auto px-4 sm:px-6 py-6">
       <audio
@@ -509,6 +693,7 @@ export default function ListenPage() {
         }}
         onPlay={() => {
           previewAudioRef.current?.pause();
+          transcriptAutoScrollEnabledRef.current = true;
           setPlaying(true);
         }}
         onPause={() => setPlaying(false)}
@@ -631,6 +816,7 @@ export default function ListenPage() {
                         return;
                       }
 
+                      transcriptAutoScrollEnabledRef.current = true;
                       audio.currentTime = Math.max(0, audio.currentTime - 10);
                     }}
                     className="text-muted-foreground hover:text-foreground transition-colors"
@@ -660,6 +846,7 @@ export default function ListenPage() {
                         return;
                       }
 
+                      transcriptAutoScrollEnabledRef.current = true;
                       audio.currentTime = Math.min(totalDuration, audio.currentTime + 10);
                     }}
                     className="text-muted-foreground hover:text-foreground transition-colors"
@@ -702,6 +889,8 @@ export default function ListenPage() {
             </div>
           </div>
         </div>
+
+        {voiceSettingsSection}
 
         <div className="rounded-2xl bg-card border border-border p-4">
           <div className="flex items-center justify-between mb-3 gap-3">
@@ -843,21 +1032,7 @@ export default function ListenPage() {
                 <div
                   key={line.id}
                   ref={isActive ? activeLineRef : undefined}
-                  onClick={() => {
-                    if (totalDuration === 0) {
-                      return;
-                    }
-
-                    const nextTime = timeToSeconds(line.time);
-                    const audio = audioRef.current;
-
-                    if (audio) {
-                      audio.currentTime = nextTime;
-                    }
-
-                    setCurrentTimeSeconds(nextTime);
-                    setProgress((nextTime / totalDuration) * 100);
-                  }}
+                  onClick={() => void handleTranscriptLineClick(line.time, isActive)}
                   className={`cursor-pointer -mx-2 px-2 py-1.5 rounded-lg transition-all duration-300 ${
                     isActive
                       ? "bg-accent/10 border-l-2 border-accent pl-3"
@@ -892,141 +1067,6 @@ export default function ListenPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border bg-card p-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0 space-y-2">
-              <div>
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                  {t("podSettings.aiHostVoice")}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">{t("listen.aiHostHint")}</p>
-              </div>
-
-              <div className="flex flex-wrap gap-2 text-[11px]">
-                <span className="rounded-full bg-secondary px-2.5 py-1 text-muted-foreground">
-                  {t("podSettings.currentAiHost", {
-                    name: podcast.aiHost ?? t("podSettings.notAssigned"),
-                  })}
-                </span>
-                <span className="rounded-full bg-secondary px-2.5 py-1 text-muted-foreground">
-                  {t("podSettings.currentVoice", {
-                    name: podcast.aiHostVoiceName ?? t("podSettings.notClonedYet"),
-                  })}
-                </span>
-                {selectedSpeaker && (
-                  <span className="rounded-full bg-accent/10 px-2.5 py-1 text-accent">
-                    {t("listen.selectedHost")}: {selectedSpeaker.name}
-                  </span>
-                )}
-              </div>
-
-              {previewError && <p className="text-xs text-destructive">{previewError}</p>}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setVoiceSettingsOpen((current) => !current)}
-              className="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg bg-secondary text-foreground text-xs font-medium hover:bg-secondary/80 transition-colors shrink-0"
-              aria-expanded={voiceSettingsOpen}
-            >
-              {voiceSettingsOpen ? t("listen.hideVoiceSettings") : t("listen.manageVoice")}
-              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${voiceSettingsOpen ? "rotate-180" : ""}`} />
-            </button>
-          </div>
-
-          {voiceSettingsOpen && (
-            <div className="mt-4 border-t border-border/70 pt-4 space-y-3">
-              <div className="grid gap-2 md:grid-cols-2">
-                {podcast.speakers.map((speaker) => {
-                  const isSelected = selectedSpeakerId === speaker.id;
-                  const isCurrentHost = podcast.aiHostSpeakerId === speaker.id;
-                  const isRecommended = dominantSpeakerId === speaker.id;
-                  const isPreviewLoading = previewLoadingSpeakerId === speaker.id;
-                  const isPreviewPlaying = previewPlayingSpeakerId === speaker.id;
-
-                  return (
-                    <div
-                      key={speaker.id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => {
-                        setSelectedSpeakerId(speaker.id);
-                        setPreviewError(null);
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          setSelectedSpeakerId(speaker.id);
-                          setPreviewError(null);
-                        }
-                      }}
-                      className={`rounded-xl border p-3 transition-colors ${
-                        isSelected
-                          ? "border-accent bg-accent/5"
-                          : "border-border bg-background/40 hover:bg-secondary/50"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-sm font-semibold text-foreground">{speaker.name}</p>
-                            {isCurrentHost && (
-                              <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-semibold text-accent">
-                                {t("listen.currentHost")}
-                              </span>
-                            )}
-                            {isRecommended && (
-                              <span className="rounded-full bg-info/10 px-2 py-0.5 text-[10px] font-semibold text-info">
-                                {t("listen.recommendedHost")}
-                              </span>
-                            )}
-                          </div>
-                          <p className="mt-1 text-xs leading-5 text-muted-foreground">{speaker.preview}</p>
-                        </div>
-                        <div className="shrink-0 text-right">
-                          <p className="text-sm font-semibold text-foreground">{speaker.pct}%</p>
-                          <p className="text-[11px] text-muted-foreground">{speaker.duration}</p>
-                        </div>
-                      </div>
-
-                      <div className="mt-3 flex items-center justify-between gap-3">
-                        <span className={`text-xs font-medium ${isSelected ? "text-accent" : "text-muted-foreground"}`}>
-                          {isSelected ? t("listen.selectedHost") : t("podSettings.hostSpeakerSource")}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            void toggleSpeakerPreview(speaker.id);
-                          }}
-                          className="inline-flex items-center gap-2 h-8 px-3 rounded-lg bg-secondary text-foreground text-xs font-medium hover:bg-secondary/80 transition-colors"
-                        >
-                          {isPreviewLoading ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : isPreviewPlaying ? (
-                            <Pause className="h-3.5 w-3.5" />
-                          ) : (
-                            <Play className="h-3.5 w-3.5" />
-                          )}
-                          {t("wizard.host.preview")}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <button
-                onClick={() => void handleCloneVoice()}
-                disabled={!selectedSpeakerId || cloningVoice}
-                className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-accent text-accent-foreground text-sm font-medium disabled:opacity-50 hover:opacity-90 transition-opacity"
-              >
-                {cloningVoice ? <Loader2 className="h-4 w-4 animate-spin" /> : <Volume2 className="h-4 w-4" />}
-                {t("podSettings.cloneHostVoice")}
-              </button>
-            </div>
-          )}
-        </div>
       </div>
 
       {!chatOpen && (

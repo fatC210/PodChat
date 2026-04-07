@@ -9,6 +9,19 @@ const editableFields = new Set<keyof Podcast>([
   "referenceCount",
   "sourceFileName",
   "sourceFileSizeMb",
+  "aiHost",
+  "guestName",
+  "persona",
+  "speakers",
+  "summaries",
+  "transcript",
+]);
+const processingTriggerFields = new Set<keyof Podcast>([
+  "title",
+  "type",
+  "referenceCount",
+  "sourceFileName",
+  "sourceFileSizeMb",
   "persona",
 ]);
 
@@ -73,13 +86,17 @@ export async function PATCH(
       patch.persona = buildPersonaFromWizardInput(body.wizard, current.persona.languagePref);
     }
 
+    const shouldEnqueueProcessing =
+      Boolean(body.wizard) ||
+      Object.keys(patch).some((key) => processingTriggerFields.has(key as keyof Podcast));
+
     const podcast = await patchStoredPodcast(id, patch);
 
     if (!podcast) {
       return NextResponse.json({ error: "Podcast not found." }, { status: 404 });
     }
 
-    if (podcast.status === "configuring") {
+    if (podcast.status === "configuring" && shouldEnqueueProcessing) {
       enqueuePodcastProcessing(podcast.id);
     }
 

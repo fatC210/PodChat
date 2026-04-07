@@ -35,7 +35,12 @@ const serverEditableFieldSet = new Set<string>([
   "referenceCount",
   "sourceFileName",
   "sourceFileSizeMb",
+  "aiHost",
+  "guestName",
   "persona",
+  "speakers",
+  "summaries",
+  "transcript",
 ]);
 
 interface StoredClientState {
