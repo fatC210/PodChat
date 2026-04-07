@@ -34,5 +34,6 @@ localPort = 5000
 externalPort = 80
 
 [deployment]
-run = ["sh", "-c", "bun dev"]
-deploymentTarget = "cloudrun"
+run = ["bash", "-c", "bun run start"]
+deploymentTarget = "autoscale"
+build = ["bash", "-c", "bun run build"]
