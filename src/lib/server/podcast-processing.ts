@@ -3,6 +3,7 @@ import "server-only";
 import { setTimeout as delay } from "node:timers/promises";
 import { isPodcastReady, resetPodcastForProcessing, type Podcast } from "@/lib/podchat-data";
 import { generateLivePodcastOutput } from "@/lib/server/live-podcast-processing";
+import { deletePodcastVoices } from "@/lib/server/podcast-voices";
 import { getStoredPodcastAsset, listStoredPodcasts, updateStoredPodcast } from "@/lib/server/podcast-store";
 import { readStoredIntegrationSettings } from "@/lib/server/settings-store";
 import { clonePodcastSpeakerVoice } from "@/lib/server/voice-cloning";
@@ -95,7 +96,9 @@ async function processPodcast(podcastId: string) {
       topic: generatedContent.topic,
       duration: generatedContent.duration,
       guestName: generatedContent.guestName,
+      detectedSpeakerCount: generatedContent.detectedSpeakerCount,
       speakers: generatedContent.speakers,
+      speakerProfiles: generatedContent.speakerProfiles,
       transcript: generatedContent.transcript,
       chapters: generatedContent.chapters,
       workflowStep: "summarizing",
@@ -168,6 +171,19 @@ export async function regeneratePodcastProcessing(podcastId: string) {
 
   if (runtime.activePodcastIds.has(podcastId)) {
     throw new Error("Podcast processing is already in progress.");
+  }
+
+  const storedAsset = await getStoredPodcastAsset(podcastId);
+
+  if (!storedAsset) {
+    return null;
+  }
+
+  try {
+    const settings = await readStoredIntegrationSettings();
+    await deletePodcastVoices(settings, storedAsset.podcast);
+  } catch {
+    void 0;
   }
 
   const podcast = await updateStoredPodcast(podcastId, resetPodcastForProcessing);

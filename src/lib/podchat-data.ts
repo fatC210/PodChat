@@ -31,6 +31,22 @@ export interface SpeakerSample {
   duration: string;
 }
 
+export type GroupVoiceStatus = "idle" | "preparing" | "ready" | "failed";
+
+export interface SpeakerProfile {
+  speakerId: string;
+  displayName: string;
+  handle: string;
+  positioning: string;
+  perspective: string;
+  speakingStyle: string;
+  grounding: string[];
+  groupVoiceId: string | null;
+  groupVoiceName: string | null;
+  groupVoiceStatus: GroupVoiceStatus;
+  groupVoiceError: string | null;
+}
+
 export interface Chapter {
   id: string;
   title: string;
@@ -46,6 +62,7 @@ export interface TranscriptLine {
   endTime?: string;
   text: string;
   translation: string;
+  translations?: Record<string, string>;
 }
 
 export interface ScriptChunk {
@@ -122,9 +139,11 @@ export interface Podcast {
   transcriptMode: TranscriptMode;
   targetLang: string;
   speakerFilter: string | null;
+  detectedSpeakerCount: number;
   chapters: Chapter[];
   transcript: TranscriptLine[];
   speakers: SpeakerSample[];
+  speakerProfiles: SpeakerProfile[];
   scriptChunks: ScriptChunk[];
   crawledPages: CrawledPage[];
   persona: PersonaSettings;
@@ -213,7 +232,115 @@ export const targetLangs = [
   { code: "de", label: "Deutsch" },
 ] as const;
 
-function normalizeSummaryTranslations(
+function slugifySpeakerHandleSegment(value: string) {
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fff]+/giu, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return normalized || "speaker";
+}
+
+export function buildSpeakerHandle(name: string, existingHandles?: Set<string>) {
+  const base = slugifySpeakerHandleSegment(name.replace(/^@+/, ""));
+  const usedHandles = existingHandles ?? new Set<string>();
+  let candidate = `@${base}`;
+  let suffix = 2;
+
+  while (usedHandles.has(candidate)) {
+    candidate = `@${base}-${suffix}`;
+    suffix += 1;
+  }
+
+  usedHandles.add(candidate);
+  return candidate;
+}
+
+function buildDefaultSpeakerProfile(input: {
+  speaker: SpeakerSample;
+  transcriptPreview: string;
+  handle: string;
+}): SpeakerProfile {
+  const { speaker, transcriptPreview, handle } = input;
+
+  return {
+    speakerId: speaker.id,
+    displayName: speaker.name,
+    handle,
+    positioning: `${speaker.name} is one of the podcast speakers and should stay grounded in the recorded discussion.`,
+    perspective: transcriptPreview || `${speaker.name} should respond using their own perspective from the podcast transcript.`,
+    speakingStyle: `Keep the tone aligned with ${speaker.name}'s transcript phrasing and pacing.`,
+    grounding: transcriptPreview ? [transcriptPreview] : [],
+    groupVoiceId: null,
+    groupVoiceName: null,
+    groupVoiceStatus: "idle",
+    groupVoiceError: null,
+  };
+}
+
+export function normalizeSpeakerProfiles(
+  speakers: SpeakerSample[],
+  transcript: TranscriptLine[],
+  speakerProfiles?: SpeakerProfile[] | null,
+) {
+  const transcriptPreviewBySpeakerId = new Map<string, string>();
+
+  transcript.forEach((line) => {
+    const speakerId = line.speakerId?.trim();
+
+    if (!speakerId || transcriptPreviewBySpeakerId.has(speakerId)) {
+      return;
+    }
+
+    transcriptPreviewBySpeakerId.set(speakerId, line.text.trim());
+  });
+
+  const profileBySpeakerId = new Map(
+    (speakerProfiles ?? [])
+      .filter((profile) => Boolean(profile.speakerId))
+      .map((profile) => [profile.speakerId, profile] as const),
+  );
+  const usedHandles = new Set<string>();
+
+  return speakers.map((speaker) => {
+    const existingProfile = profileBySpeakerId.get(speaker.id);
+    const transcriptPreview = transcriptPreviewBySpeakerId.get(speaker.id) ?? speaker.preview;
+    const nextHandle = buildSpeakerHandle(speaker.name, usedHandles);
+
+    return {
+      ...(existingProfile ??
+        buildDefaultSpeakerProfile({
+          speaker,
+          transcriptPreview,
+          handle: nextHandle,
+        })),
+      speakerId: speaker.id,
+      displayName: speaker.name,
+      handle: nextHandle,
+      positioning:
+        existingProfile?.positioning?.trim() ||
+        `${speaker.name} is one of the podcast speakers and should stay grounded in the recorded discussion.`,
+      perspective:
+        existingProfile?.perspective?.trim() ||
+        transcriptPreview ||
+        `${speaker.name} should respond using their own perspective from the podcast transcript.`,
+      speakingStyle:
+        existingProfile?.speakingStyle?.trim() ||
+        `Keep the tone aligned with ${speaker.name}'s transcript phrasing and pacing.`,
+      grounding:
+        existingProfile?.grounding?.filter(Boolean).length
+          ? existingProfile.grounding.filter(Boolean)
+          : [transcriptPreview].filter(Boolean),
+      groupVoiceId: existingProfile?.groupVoiceId ?? null,
+      groupVoiceName: existingProfile?.groupVoiceName ?? null,
+      groupVoiceStatus: existingProfile?.groupVoiceStatus ?? "idle",
+      groupVoiceError: existingProfile?.groupVoiceError ?? null,
+    } satisfies SpeakerProfile;
+  });
+}
+
+function normalizeTextTranslations(
   translations: Record<string, string | null | undefined> | null | undefined,
 ) {
   return Object.fromEntries(
@@ -221,6 +348,44 @@ function normalizeSummaryTranslations(
       .map(([lang, text]) => [lang.trim().toLowerCase(), text?.trim() ?? ""] as const)
       .filter(([lang, text]) => Boolean(lang && text)),
   );
+}
+
+function hasCjkCharacters(value: string) {
+  return /[\u3400-\u9fff]/u.test(value);
+}
+
+function hasLegacyZhTranscriptTranslation(line: Pick<TranscriptLine, "text" | "translation">) {
+  const normalizedText = line.text.trim();
+  const normalizedTranslation = line.translation.trim();
+
+  if (!normalizedTranslation) {
+    return false;
+  }
+
+  if (normalizedTranslation !== normalizedText) {
+    return true;
+  }
+
+  return hasCjkCharacters(normalizedText);
+}
+
+export function normalizeTranscriptLines(transcript: TranscriptLine[]) {
+  return transcript.map((line) => {
+    const text = line.text.trim();
+    const normalizedTranslations = normalizeTextTranslations(line.translations);
+    const legacyTranslation = line.translation.trim();
+
+    if (hasLegacyZhTranscriptTranslation({ text, translation: legacyTranslation }) && !normalizedTranslations.zh) {
+      normalizedTranslations.zh = legacyTranslation;
+    }
+
+    return {
+      ...line,
+      text,
+      translation: legacyTranslation || normalizedTranslations.zh || text,
+      translations: Object.keys(normalizedTranslations).length > 0 ? normalizedTranslations : undefined,
+    } satisfies TranscriptLine;
+  });
 }
 
 export function isSupportedTargetLang(targetLang: string | null | undefined) {
@@ -263,6 +428,48 @@ export function upsertSummaryTranslation(
     ...summary,
     translations: {
       ...(summary.translations ?? {}),
+      [normalizedTargetLang]: normalizedText,
+    },
+  };
+}
+
+export function getTranscriptTranslation(line: TranscriptLine, targetLang: string | null | undefined) {
+  const normalizedTargetLang = targetLang?.trim().toLowerCase();
+
+  if (!normalizedTargetLang) {
+    return null;
+  }
+
+  const directTranslation = line.translations?.[normalizedTargetLang]?.trim();
+
+  if (directTranslation) {
+    return directTranslation;
+  }
+
+  if (normalizedTargetLang === "zh" && hasLegacyZhTranscriptTranslation(line)) {
+    return line.translation.trim();
+  }
+
+  return null;
+}
+
+export function upsertTranscriptTranslation(
+  line: TranscriptLine,
+  targetLang: string,
+  translatedText: string,
+): TranscriptLine {
+  const normalizedTargetLang = targetLang.trim().toLowerCase();
+  const normalizedText = translatedText.trim();
+
+  if (!normalizedTargetLang || !normalizedText) {
+    return line;
+  }
+
+  return {
+    ...line,
+    translation: normalizedTargetLang === "zh" ? normalizedText : line.translation,
+    translations: {
+      ...(line.translations ?? {}),
       [normalizedTargetLang]: normalizedText,
     },
   };
@@ -474,7 +681,7 @@ export function normalizePodcastSummaries(summaries: PodcastSummaryInput[]): Pod
           .replace(/[ \t]+\n/g, "\n")
           .replace(/\n{3,}/g, "\n\n")
           .trim(),
-        translations: normalizeSummaryTranslations(summary.translations),
+        translations: normalizeTextTranslations(summary.translations),
       };
     })
     .filter((summary) => Boolean(summary.text));
@@ -584,6 +791,8 @@ export function buildPersonaFromWizardInput(
 function makeDraftPodcast(input: SavePodcastInput, draft?: Podcast): Podcast {
   const title = input.title.trim();
   const persona = buildPersonaFromWizardInput(input, draft?.persona.languagePref);
+  const speakers = draft?.speakers ?? [];
+  const transcript = draft?.transcript ?? [];
 
   return {
     id: draft?.id ?? makePodcastId(),
@@ -612,8 +821,10 @@ function makeDraftPodcast(input: SavePodcastInput, draft?: Podcast): Podcast {
     targetLang: draft?.targetLang ?? "zh",
     speakerFilter: draft?.speakerFilter ?? null,
     chapters: draft?.chapters ?? [],
-    transcript: draft?.transcript ?? [],
-    speakers: draft?.speakers ?? [],
+    detectedSpeakerCount: draft?.detectedSpeakerCount ?? speakers.length,
+    transcript,
+    speakers,
+    speakerProfiles: normalizeSpeakerProfiles(speakers, transcript, draft?.speakerProfiles),
     scriptChunks: draft?.scriptChunks ?? [],
     crawledPages: draft?.crawledPages ?? [],
     persona,
@@ -654,9 +865,11 @@ export function resetPodcastForProcessing(podcast: Podcast): Podcast {
     processingError: null,
     progressPercent: 0,
     speakerFilter: null,
+    detectedSpeakerCount: 0,
     chapters: [],
     transcript: [],
     speakers: [],
+    speakerProfiles: [],
     scriptChunks: [],
     crawledPages: [],
     summaries: [],
@@ -766,12 +979,25 @@ export function renamePodcastSpeaker(
       : podcast.aiHost;
   const guestName = podcast.guestName === currentName ? normalizedName : podcast.guestName;
   const speakerFilter = podcast.speakerFilter === currentName ? normalizedName : podcast.speakerFilter;
+  const speakerProfiles = normalizeSpeakerProfiles(
+    speakers,
+    transcript,
+    podcast.speakerProfiles.map((profile) =>
+      profile.speakerId === speakerId
+        ? {
+            ...profile,
+            displayName: normalizedName,
+          }
+        : profile,
+    ),
+  );
 
   if (
     !changed &&
     aiHost === podcast.aiHost &&
     guestName === podcast.guestName &&
-    speakerFilter === podcast.speakerFilter
+    speakerFilter === podcast.speakerFilter &&
+    JSON.stringify(speakerProfiles) === JSON.stringify(podcast.speakerProfiles)
   ) {
     return podcast;
   }
@@ -782,13 +1008,18 @@ export function renamePodcastSpeaker(
     guestName,
     speakerFilter,
     speakers,
+    speakerProfiles,
     transcript,
   };
 }
 
 export function getPodcastSpeakerCount(
-  podcast: Pick<Podcast, "speakers" | "transcript" | "type" | "referenceCount">,
+  podcast: Pick<Podcast, "detectedSpeakerCount" | "speakers" | "transcript" | "type" | "referenceCount">,
 ) {
+  if (podcast.detectedSpeakerCount > 0) {
+    return podcast.detectedSpeakerCount;
+  }
+
   if (podcast.speakers.length > 0) {
     return podcast.speakers.length;
   }
@@ -806,17 +1037,21 @@ export function getPodcastSpeakerCount(
   return podcast.type === "solo" ? 1 : Math.max(1, podcast.referenceCount);
 }
 
+export function supportsGroupChat(
+  podcast: Pick<Podcast, "detectedSpeakerCount">,
+) {
+  return podcast.detectedSpeakerCount >= 2;
+}
+
 export function getSummary(podcast: Podcast, duration: number) {
   return podcast.summaries.find((summary) => summary.duration === duration) ?? null;
 }
 
 export function getTranslatedTranscript(line: TranscriptLine, targetLang: string) {
-  if (targetLang === "zh") {
-    return line.translation;
-  }
+  const cachedTranslation = getTranscriptTranslation(line, targetLang);
 
-  if (targetLang === "en") {
-    return line.text;
+  if (cachedTranslation) {
+    return cachedTranslation;
   }
 
   const langLabel = targetLangs.find((lang) => lang.code === targetLang)?.label ?? targetLang.toUpperCase();

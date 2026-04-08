@@ -3,6 +3,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { detectDominantMessageLanguage } from "@/lib/chat";
 import { formatDurationLabel, type IntegrationSettings, type SummaryEmotion } from "@/lib/podchat-data";
 import { resolveTranscriptionDurationSeconds } from "@/lib/transcript-duration";
 import { fetchWithUpstreamErrorContext, normalizeValue, readUpstreamError } from "@/lib/server/integrations";
@@ -23,10 +24,15 @@ interface ElevenLabsSpeechToTextResponse {
   words?: ElevenLabsWord[];
 }
 
-interface ElevenLabsVoice {
+export interface ElevenLabsVoice {
   voice_id?: string;
   name?: string;
   category?: string;
+}
+
+export interface ElevenLabsSubscription {
+  voice_slots_used?: number;
+  voice_limit?: number;
 }
 
 export interface ElevenLabsTranscriptLine {
@@ -274,6 +280,32 @@ export async function listElevenLabsVoices(settings: Pick<IntegrationSettings, "
   return payload.voices ?? [];
 }
 
+export async function getElevenLabsSubscription(settings: Pick<IntegrationSettings, "elevenlabs">) {
+  if (!hasElevenLabsConfig(settings)) {
+    return {
+      voiceSlotsUsed: null,
+      voiceLimit: null,
+    };
+  }
+
+  const response = await fetchWithUpstreamErrorContext("ElevenLabs subscription API", "https://api.elevenlabs.io/v1/user/subscription", {
+    headers: {
+      "xi-api-key": settings.elevenlabs,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(await readUpstreamError(response));
+  }
+
+  const payload = (await response.json()) as ElevenLabsSubscription;
+
+  return {
+    voiceSlotsUsed: typeof payload.voice_slots_used === "number" ? payload.voice_slots_used : null,
+    voiceLimit: typeof payload.voice_limit === "number" ? payload.voice_limit : null,
+  };
+}
+
 export async function deleteElevenLabsVoice(
   settings: Pick<IntegrationSettings, "elevenlabs">,
   voiceId: string,
@@ -330,6 +362,7 @@ export async function synthesizeTextWithElevenLabs(
     cacheKeyParts: string[];
     voiceIdOverride?: string | null;
     emotion?: SummaryEmotion | "neutral";
+    languageCode?: "zh" | "en";
   },
 ) {
   if (!hasElevenLabsConfig(settings)) {
@@ -340,7 +373,13 @@ export async function synthesizeTextWithElevenLabs(
   const { voiceId } = overrideVoiceId
     ? { voiceId: overrideVoiceId }
     : await resolveElevenLabsVoice(settings);
-  const audioKey = hashSummaryAudioKey([...input.cacheKeyParts, voiceId, input.text]);
+  const resolvedLanguageCode = input.languageCode ?? detectDominantMessageLanguage(input.text) ?? undefined;
+  const audioKey = hashSummaryAudioKey([
+    ...input.cacheKeyParts,
+    voiceId,
+    resolvedLanguageCode ?? "auto",
+    input.text,
+  ]);
   const audioPath = path.join(generatedDir, `${audioKey}.mp3`);
   const emotion = input.emotion ?? "neutral";
   const voiceSettings =
@@ -376,6 +415,7 @@ export async function synthesizeTextWithElevenLabs(
     },
     body: JSON.stringify({
       model_id: "eleven_multilingual_v2",
+      ...(resolvedLanguageCode ? { language_code: resolvedLanguageCode } : {}),
       text: input.text,
       voice_settings: {
         ...voiceSettings,

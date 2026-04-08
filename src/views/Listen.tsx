@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import SummaryButton from "@/components/SummaryButton";
 import FloatingChat from "@/components/FloatingChat";
-import { cloneHostVoice } from "@/lib/api";
+import { cloneHostVoice, requestTranscriptTranslation } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { useAppData } from "@/lib/app-data";
 import { useBackNavigation } from "@/lib/navigation";
@@ -29,7 +29,7 @@ import {
   formatDurationLabel,
   getDominantSpeakerId,
   getPreferredAiHostSpeakerId,
-  getTranslatedTranscript,
+  getTranscriptTranslation,
   isPodcastReady,
   targetLangs,
   timeToSeconds,
@@ -65,6 +65,9 @@ export default function ListenPage() {
   const [previewPlayingSpeakerId, setPreviewPlayingSpeakerId] = useState<string | null>(null);
   const [previewLoadingSpeakerId, setPreviewLoadingSpeakerId] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [transcriptTranslations, setTranscriptTranslations] = useState<Record<string, Record<string, string>>>({});
+  const [transcriptTranslationLoading, setTranscriptTranslationLoading] = useState(false);
+  const [transcriptTranslationError, setTranscriptTranslationError] = useState<string | null>(null);
 
   const progressRef = useRef<HTMLDivElement>(null);
   const speedRef = useRef<HTMLDivElement>(null);
@@ -110,6 +113,9 @@ export default function ListenPage() {
     setPreviewPlayingSpeakerId(null);
     setPreviewLoadingSpeakerId(null);
     setPreviewError(null);
+    setTranscriptTranslations({});
+    setTranscriptTranslationLoading(false);
+    setTranscriptTranslationError(null);
     previewPlayRequestIdRef.current += 1;
     if (previewAudioRef.current) {
       previewAudioRef.current.pause();
@@ -208,6 +214,70 @@ export default function ListenPage() {
       block: "center",
     });
   }, [activeLineIndex]);
+
+  const transcriptTranslationOverrides = useMemo(
+    () => transcriptTranslations[targetLang] ?? {},
+    [targetLang, transcriptTranslations],
+  );
+
+  useEffect(() => {
+    const transcript = podcast?.transcript ?? [];
+
+    if (!podcastId || transcriptMode === "original" || transcript.length === 0) {
+      setTranscriptTranslationLoading(false);
+
+      if (transcriptMode === "original") {
+        setTranscriptTranslationError(null);
+      }
+
+      return;
+    }
+
+    const needsTranslation = transcript.some((line) => {
+      const overrideTranslation = transcriptTranslationOverrides[line.id]?.trim();
+      return !overrideTranslation && !getTranscriptTranslation(line, targetLang);
+    });
+
+    if (!needsTranslation) {
+      setTranscriptTranslationLoading(false);
+      setTranscriptTranslationError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setTranscriptTranslationLoading(true);
+    setTranscriptTranslationError(null);
+
+    void requestTranscriptTranslation(podcastId, targetLang)
+      .then((result) => {
+        if (cancelled) {
+          return;
+        }
+
+        setTranscriptTranslations((current) => ({
+          ...current,
+          [result.targetLang]: result.translations,
+        }));
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+
+        const message = error instanceof Error ? error.message : t("listen.translationFailed");
+        setTranscriptTranslationError(message);
+        toast.error(message);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setTranscriptTranslationLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [podcast?.transcript, podcastId, targetLang, t, transcriptMode, transcriptTranslationOverrides]);
 
   useEffect(() => {
     const anyOpen = showSpeed || showExportMenu || showTranscriptMenu || showLangMenu;
@@ -897,6 +967,7 @@ export default function ListenPage() {
             <div className="flex items-center gap-1.5">
               <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                 {t("listen.transcript")}
+                {transcriptMode !== "original" && transcriptTranslationLoading ? ` - ${t("listen.translationLoading")}` : ""}
               </p>
               <div className="relative" ref={exportRef}>
                 <button
@@ -947,6 +1018,7 @@ export default function ListenPage() {
                           onClick={() => {
                             setTargetLang(lang.code);
                             setShowLangMenu(false);
+                            setTranscriptTranslationError(null);
                           }}
                           className={`block w-full px-3 py-1.5 text-[11px] text-left transition-colors ${
                             targetLang === lang.code
@@ -978,6 +1050,7 @@ export default function ListenPage() {
                         onClick={() => {
                           setTranscriptMode(mode.key);
                           setShowTranscriptMenu(false);
+                          setTranscriptTranslationError(null);
                         }}
                         className={`block w-full px-3 py-1.5 text-[11px] rounded-lg text-left transition-colors ${
                           transcriptMode === mode.key
@@ -993,6 +1066,10 @@ export default function ListenPage() {
               </div>
             </div>
           </div>
+
+          {transcriptMode !== "original" && transcriptTranslationError && (
+            <p className="mb-3 text-xs text-destructive">{transcriptTranslationError}</p>
+          )}
 
           <div className="flex items-center gap-1.5 mb-3 flex-wrap">
             <button
@@ -1026,7 +1103,10 @@ export default function ListenPage() {
             {filteredTranscript.map((line) => {
               const originalIndex = podcast.transcript.findIndex((entry) => entry.id === line.id);
               const isActive = originalIndex === activeLineIndex;
-              const translated = getTranslatedTranscript(line, targetLang);
+              const translated =
+                transcriptTranslationOverrides[line.id]?.trim() ||
+                getTranscriptTranslation(line, targetLang) ||
+                line.text;
 
               return (
                 <div

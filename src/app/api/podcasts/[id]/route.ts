@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { buildPersonaFromWizardInput, type Podcast } from "@/lib/podchat-data";
+import { deletePodcastVoices } from "@/lib/server/podcast-voices";
 import { enqueuePodcastProcessing } from "@/lib/server/podcast-processing";
+import { readStoredIntegrationSettings } from "@/lib/server/settings-store";
 import { deleteStoredPodcast, getStoredPodcast, patchStoredPodcast } from "@/lib/server/podcast-store";
 
 const editableFields = new Set<keyof Podcast>([
@@ -13,6 +15,7 @@ const editableFields = new Set<keyof Podcast>([
   "guestName",
   "persona",
   "speakers",
+  "speakerProfiles",
   "summaries",
   "transcript",
 ]);
@@ -114,6 +117,19 @@ export async function DELETE(
   void request;
 
   const { id } = await context.params;
+  const existingPodcast = await getStoredPodcast(id);
+
+  if (!existingPodcast) {
+    return NextResponse.json({ error: "Podcast not found." }, { status: 404 });
+  }
+
+  try {
+    const settings = await readStoredIntegrationSettings();
+    await deletePodcastVoices(settings, existingPodcast);
+  } catch {
+    void 0;
+  }
+
   const deleted = await deleteStoredPodcast(id);
 
   if (!deleted) {

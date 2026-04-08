@@ -39,6 +39,7 @@ const serverEditableFieldSet = new Set<string>([
   "guestName",
   "persona",
   "speakers",
+  "speakerProfiles",
   "summaries",
   "transcript",
 ]);

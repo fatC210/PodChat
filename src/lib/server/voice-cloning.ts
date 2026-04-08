@@ -7,6 +7,7 @@ import { spawn } from "node:child_process";
 import { timeToSeconds, type IntegrationSettings, type Podcast, type TranscriptLine } from "@/lib/podchat-data";
 import { hasElevenLabsConfig } from "@/lib/server/elevenlabs";
 import { fetchWithUpstreamErrorContext, readUpstreamError } from "@/lib/server/integrations";
+import { collectPodcastVoiceIds, ensurePodChatVoiceCapacity } from "@/lib/server/podcast-voices";
 
 const tempRootDir = path.join(/* turbopackIgnore: true */ process.cwd(), ".podchat", "tmp");
 
@@ -186,6 +187,10 @@ export async function clonePodcastSpeakerVoice(input: {
   if (!hasElevenLabsConfig(settings)) {
     throw new Error("ElevenLabs API key is required for voice cloning.");
   }
+
+  await ensurePodChatVoiceCapacity(settings, {
+    preserveVoiceIds: collectPodcastVoiceIds(podcast),
+  });
 
   const sample = await preparePodcastSpeakerSampleAudio({
     assetPath,

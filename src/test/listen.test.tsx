@@ -9,6 +9,7 @@ const useParamsMock = vi.fn();
 const useAppDataMock = vi.fn();
 const useI18nMock = vi.fn();
 const cloneHostVoiceMock = vi.fn();
+const requestTranscriptTranslationMock = vi.fn();
 
 vi.mock("next/navigation", () => ({
   useParams: () => useParamsMock(),
@@ -36,6 +37,7 @@ vi.mock("@/lib/navigation", () => ({
 
 vi.mock("@/lib/api", () => ({
   cloneHostVoice: (...args: unknown[]) => cloneHostVoiceMock(...args),
+  requestTranscriptTranslation: (...args: unknown[]) => requestTranscriptTranslationMock(...args),
 }));
 
 vi.mock("@/components/SummaryButton", () => ({
@@ -266,5 +268,57 @@ describe("ListenPage transcript playback controls", () => {
     expect(audio.currentTime).toBe(10);
     expect(pauseSpy).not.toHaveBeenCalled();
     expect(playSpy).not.toHaveBeenCalled();
+  });
+
+  it("requests transcript translations when translated mode has no cached text", async () => {
+    requestTranscriptTranslationMock.mockResolvedValue({
+      targetLang: "zh",
+      translations: {
+        "line-1": "第一句译文",
+        "line-2": "第二句译文",
+      },
+    });
+    useAppDataMock.mockReturnValue({
+      podcasts: [
+        {
+          ...buildReadyPodcast(),
+          transcript: [
+            {
+              id: "line-1",
+              speakerId: "speaker-1",
+              speaker: "Host Alpha",
+              color: "text-accent",
+              time: "00:00",
+              endTime: "00:10",
+              text: "First line",
+              translation: "First line",
+            },
+            {
+              id: "line-2",
+              speakerId: "speaker-2",
+              speaker: "Guest Beta",
+              color: "text-info",
+              time: "00:10",
+              endTime: "00:20",
+              text: "Second line",
+              translation: "Second line",
+            },
+          ],
+        },
+      ],
+      hydrated: true,
+      updatePodcast: updatePodcastMock,
+    });
+
+    render(<ListenPage />);
+
+    fireEvent.click(screen.getByText("listen.modeOriginal").closest("button")!);
+    fireEvent.click(await screen.findByText("listen.modeTranslated"));
+
+    await waitFor(() => {
+      expect(requestTranscriptTranslationMock).toHaveBeenCalledWith("pod-1", "zh");
+    });
+
+    expect(await screen.findByText("第一句译文")).toBeInTheDocument();
   });
 });

@@ -1,4 +1,5 @@
 import type {
+  ChatSpeechEmotion,
   ChatRequestBody,
   ChatResponseBody,
   IntegrationTestRequestBody,
@@ -197,13 +198,24 @@ export async function transcribeSpeech(file: Blob, fileName = "speech.webm") {
   return (await response.json()) as { text: string };
 }
 
-export async function requestChatSpeech(podcastId: string, text: string) {
+export async function requestChatSpeech(
+  podcastId: string,
+  text: string,
+  speakerId?: string,
+  emotion?: ChatSpeechEmotion,
+  speechStyle?: string,
+) {
   const response = await fetch(`/api/podcasts/${podcastId}/chat-audio`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({
+      text,
+      ...(speakerId ? { speakerId } : {}),
+      ...(emotion ? { emotion } : {}),
+      ...(speechStyle ? { speechStyle } : {}),
+    }),
   });
 
   if (!response.ok) {
@@ -220,6 +232,30 @@ export async function cloneHostVoice(podcastId: string, speakerId: string) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ speakerId }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response));
+  }
+
+  return (await response.json()) as { podcast: Podcast };
+}
+
+export async function prepareGroupVoices(podcastId: string) {
+  const response = await fetch(`/api/podcasts/${podcastId}/group-voices/prepare`, {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response));
+  }
+
+  return (await response.json()) as { podcast: Podcast };
+}
+
+export async function recloneGroupVoice(podcastId: string, speakerId: string) {
+  const response = await fetch(`/api/podcasts/${podcastId}/group-voices/${speakerId}/reclone`, {
+    method: "POST",
   });
 
   if (!response.ok) {
@@ -252,6 +288,30 @@ export async function requestSummaryTranslation(
   return (await response.json()) as {
     text: string;
     podcast: Podcast;
+  };
+}
+
+export async function requestTranscriptTranslation(
+  podcastId: string,
+  targetLang: string,
+) {
+  const response = await fetch(`/api/podcasts/${podcastId}/transcript-translation`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      targetLang,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response));
+  }
+
+  return (await response.json()) as {
+    targetLang: string;
+    translations: Record<string, string>;
   };
 }
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildSpeakerHandle,
   buildPodcastFromWizard,
   canRegeneratePodcast,
   getDominantSpeakerId,
@@ -8,9 +9,11 @@ import {
   getSummaryTranslation,
   isPodcastReady,
   normalizePodcastSummaries,
+  normalizeSpeakerProfiles,
   renamePodcastSpeaker,
   resetPodcastForProcessing,
   setPodcastSummaryEmotion,
+  supportsGroupChat,
   upsertSummaryTranslation,
 } from "@/lib/podchat-data";
 
@@ -37,7 +40,9 @@ describe("buildPodcastFromWizard", () => {
     expect(podcast.aiHostSpeakerId).toBeNull();
     expect(podcast.aiHostVoiceId).toBeNull();
     expect(podcast.aiHostVoiceName).toBeNull();
+    expect(podcast.detectedSpeakerCount).toBe(0);
     expect(podcast.transcript).toEqual([]);
+    expect(podcast.speakerProfiles).toEqual([]);
     expect(podcast.summaries).toEqual([]);
     expect(podcast.scriptChunks).toEqual([]);
     expect(podcast.crawledPages).toEqual([]);
@@ -153,6 +158,40 @@ describe("normalizePodcastSummaries", () => {
       zh: "简短摘要",
       es: "Resumen corto",
     });
+  });
+});
+
+describe("speaker profile helpers", () => {
+  it("generates stable mention handles for duplicate speaker names", () => {
+    const usedHandles = new Set<string>();
+
+    expect(buildSpeakerHandle("Host", usedHandles)).toBe("@host");
+    expect(buildSpeakerHandle("Host", usedHandles)).toBe("@host-2");
+  });
+
+  it("normalizes speaker profiles from the detected speakers and transcript", () => {
+    const profiles = normalizeSpeakerProfiles(
+      [
+        { id: "speaker-1", name: "Host Alpha", pct: 60, preview: "Preview one", duration: "00:10" },
+        { id: "speaker-2", name: "Guest Beta", pct: 40, preview: "Preview two", duration: "00:08" },
+      ],
+      [
+        {
+          id: "line-1",
+          speakerId: "speaker-1",
+          speaker: "Host Alpha",
+          color: "text-accent",
+          time: "00:00",
+          text: "Host line",
+          translation: "Host line",
+        },
+      ],
+    );
+
+    expect(profiles).toHaveLength(2);
+    expect(profiles[0]?.handle).toBe("@host-alpha");
+    expect(profiles[0]?.grounding).toEqual(["Host line"]);
+    expect(profiles[1]?.handle).toBe("@guest-beta");
   });
 });
 
@@ -354,9 +393,75 @@ describe("renamePodcastSpeaker", () => {
     expect(renamedPodcast.aiHost).toBe("Alex");
     expect(renamedPodcast.transcript[0]?.speaker).toBe("Alex");
   });
+
+  it("rebuilds the mention handle from the renamed speaker name", () => {
+    const podcast = buildPodcastFromWizard({
+      title: "Rename Handles",
+      type: "multi",
+      referenceCount: 2,
+      sourceFileName: "handles.mp3",
+      sourceFileSizeMb: 6,
+      personaPresetId: "professional",
+      personaLocale: "en",
+      customPersonality: "",
+      customCatchphrases: "",
+      customAnswerStyle: "",
+    });
+
+    podcast.speakers = [
+      { id: "speaker-1", name: "Host", pct: 55, preview: "Welcome", duration: "01:40" },
+      { id: "speaker-2", name: "Speaker 2", pct: 45, preview: "Thanks", duration: "01:20" },
+    ];
+    podcast.transcript = [
+      {
+        id: "line-1",
+        speakerId: "speaker-1",
+        speaker: "Host",
+        color: "text-accent",
+        time: "00:00",
+        text: "Welcome back",
+        translation: "Welcome back",
+      },
+      {
+        id: "line-2",
+        speakerId: "speaker-2",
+        speaker: "Speaker 2",
+        color: "text-info",
+        time: "00:04",
+        text: "Thanks for having me",
+        translation: "Thanks for having me",
+      },
+    ];
+    podcast.speakerProfiles = normalizeSpeakerProfiles(podcast.speakers, podcast.transcript);
+
+    const renamedPodcast = renamePodcastSpeaker(podcast, "speaker-2", "Jane");
+
+    expect(renamedPodcast.speakerProfiles[1]?.displayName).toBe("Jane");
+    expect(renamedPodcast.speakerProfiles[1]?.handle).toBe("@jane");
+  });
 });
 
 describe("getPodcastSpeakerCount", () => {
+  it("uses the detected speaker count when it is present", () => {
+    const podcast = buildPodcastFromWizard({
+      title: "Detected count",
+      type: "multi",
+      referenceCount: 4,
+      sourceFileName: "detected.mp3",
+      sourceFileSizeMb: 10,
+      personaPresetId: "professional",
+      personaLocale: "en",
+      customPersonality: "",
+      customCatchphrases: "",
+      customAnswerStyle: "",
+    });
+
+    podcast.detectedSpeakerCount = 3;
+
+    expect(getPodcastSpeakerCount(podcast)).toBe(3);
+    expect(supportsGroupChat(podcast)).toBe(true);
+  });
+
   it("prefers detected speaker samples when they exist", () => {
     const podcast = buildPodcastFromWizard({
       title: "Detected Speakers",

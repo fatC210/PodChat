@@ -29,10 +29,12 @@ export default function PodcastSettingsPage() {
   const podcast = podcasts.find((entry) => entry.id === params.id);
   const [showPages, setShowPages] = useState(false);
   const [persona, setPersona] = useState<PersonaSettings | null>(null);
+  const [podcastTitle, setPodcastTitle] = useState("");
   const [speakerNames, setSpeakerNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (podcast) {
+      setPodcastTitle(podcast.title);
       setPersona(podcast.persona);
       setSpeakerNames(
         Object.fromEntries(podcast.speakers.map((speaker) => [speaker.id, speaker.name])),
@@ -52,6 +54,34 @@ export default function PodcastSettingsPage() {
     updatePodcast(podcast.id, (current) => ({
       ...current,
       persona: nextPersona,
+    }));
+    toast.success(t("settings.saved"));
+  };
+
+  const autoSaveTitle = () => {
+    if (!podcast) {
+      return;
+    }
+
+    const nextTitle = podcastTitle.trim();
+
+    if (!nextTitle) {
+      setPodcastTitle(podcast.title);
+      toast.error(t("podSettings.podcastTitleRequired"));
+      return;
+    }
+
+    if (nextTitle === podcast.title) {
+      if (podcastTitle !== nextTitle) {
+        setPodcastTitle(nextTitle);
+      }
+      return;
+    }
+
+    setPodcastTitle(nextTitle);
+    updatePodcast(podcast.id, (current) => ({
+      ...current,
+      title: nextTitle,
     }));
     toast.success(t("settings.saved"));
   };
@@ -160,6 +190,29 @@ export default function PodcastSettingsPage() {
             <p className="text-xs text-muted-foreground mt-1">{podcast.processingError}</p>
           </section>
         )}
+
+        <section>
+          <h3 className="text-sm font-semibold text-foreground mb-3">{t("podSettings.basicInfo")}</h3>
+          <div>
+            <label htmlFor="podcast-title" className="text-xs text-muted-foreground mb-1 block">
+              {t("wizard.podcastTitle")}
+            </label>
+            <input
+              id="podcast-title"
+              type="text"
+              value={podcastTitle}
+              onChange={(event) => setPodcastTitle(event.target.value)}
+              onBlur={autoSaveTitle}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.currentTarget.blur();
+                }
+              }}
+              placeholder={t("wizard.podcastTitlePlaceholder")}
+              className="w-full h-10 px-3 rounded-lg bg-secondary border-0 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-accent"
+            />
+          </div>
+        </section>
 
         <section>
           <h3 className="text-sm font-semibold text-foreground mb-3">{t("podSettings.persona")}</h3>

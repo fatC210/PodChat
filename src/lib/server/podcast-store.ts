@@ -3,7 +3,14 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { buildPodcastFromWizard, normalizePodcastSummaries, type Podcast, type SavePodcastInput } from "@/lib/podchat-data";
+import {
+  buildPodcastFromWizard,
+  normalizePodcastSummaries,
+  normalizeTranscriptLines,
+  normalizeSpeakerProfiles,
+  type Podcast,
+  type SavePodcastInput,
+} from "@/lib/podchat-data";
 import { normalizeDisplayDuration } from "@/lib/transcript-duration";
 
 interface StoredPodcast extends Podcast {
@@ -38,6 +45,13 @@ function normalizeStoredPodcast(storedPodcast: StoredPodcast): StoredPodcast {
   return {
     ...storedPodcast,
     duration,
+    detectedSpeakerCount: storedPodcast.detectedSpeakerCount ?? storedPodcast.speakers.length,
+    transcript: normalizeTranscriptLines(storedPodcast.transcript ?? []),
+    speakerProfiles: normalizeSpeakerProfiles(
+      storedPodcast.speakers ?? [],
+      normalizeTranscriptLines(storedPodcast.transcript ?? []),
+      storedPodcast.speakerProfiles,
+    ),
     summaries: normalizePodcastSummaries(storedPodcast.summaries),
   };
 }

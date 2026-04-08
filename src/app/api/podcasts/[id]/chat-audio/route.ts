@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { NextResponse } from "next/server";
+import { normalizeSummaryEmotion } from "@/lib/podchat-data";
 import { getStoredPodcast } from "@/lib/server/podcast-store";
 import { readStoredIntegrationSettings } from "@/lib/server/settings-store";
 import { synthesizeTextWithElevenLabs } from "@/lib/server/elevenlabs";
@@ -18,18 +19,46 @@ export async function POST(
 
     const body = (await request.json()) as {
       text?: string;
+      speakerId?: string;
+      emotion?: string;
+      speechStyle?: string;
     };
     const text = body.text?.trim();
+    const speechStyle = body.speechStyle?.trim();
 
     if (!text) {
       return NextResponse.json({ error: "Chat text is required." }, { status: 400 });
     }
 
+    const normalizedEmotion =
+      body.emotion?.trim().toLowerCase() === "neutral"
+        ? "neutral"
+        : normalizeSummaryEmotion(body.emotion);
+
+    if (body.emotion && !normalizedEmotion) {
+      return NextResponse.json({ error: "Chat speech emotion is invalid." }, { status: 400 });
+    }
+
+    const playbackEmotion =
+      normalizedEmotion ??
+      normalizeSummaryEmotion(speechStyle) ??
+      "neutral";
+
+    const speakerProfile = body.speakerId
+      ? podcast.speakerProfiles.find((profile) => profile.speakerId === body.speakerId)
+      : null;
     const settings = await readStoredIntegrationSettings();
     const synthesis = await synthesizeTextWithElevenLabs(settings, {
       text,
-      cacheKeyParts: ["chat-audio", podcast.id],
-      voiceIdOverride: podcast.aiHostVoiceId,
+      cacheKeyParts: [
+        "chat-audio",
+        podcast.id,
+        body.speakerId?.trim() || "default",
+        playbackEmotion,
+        speechStyle || "default-style",
+      ],
+      voiceIdOverride: speakerProfile?.groupVoiceId ?? podcast.aiHostVoiceId,
+      emotion: playbackEmotion,
     });
     const audioBytes = await readFile(synthesis.audioPath);
 

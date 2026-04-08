@@ -11,6 +11,7 @@ import {
   type KnowledgeSignals,
 } from "@/lib/knowledge-base";
 import {
+  normalizeSpeakerProfiles,
   formatClock,
   normalizePodcastSummaries,
   summaryDurations,
@@ -21,6 +22,7 @@ import {
   type PodcastSummary,
   type ScriptChunk,
   type SpeakerSample,
+  type SpeakerProfile,
   type TranscriptLine,
 } from "@/lib/podchat-data";
 import {
@@ -62,6 +64,18 @@ interface StructuredPodcastSummaryOutput {
   summaries?: StructuredSummaryItem[];
 }
 
+interface StructuredSpeakerProfileItem {
+  speaker?: string;
+  positioning?: string;
+  perspective?: string;
+  speakingStyle?: string;
+  grounding?: string[];
+}
+
+interface StructuredSpeakerProfileOutput {
+  speakerProfiles?: StructuredSpeakerProfileItem[];
+}
+
 export interface LiveProcessingOutput {
   duration: string;
   topic: string;
@@ -75,7 +89,9 @@ export interface LiveProcessingOutput {
   summaries: PodcastSummary[];
   scriptChunks: ScriptChunk[];
   crawledPages: CrawledPage[];
+  detectedSpeakerCount: number;
   speakers: SpeakerSample[];
+  speakerProfiles: SpeakerProfile[];
 }
 
 interface ScoredKnowledgePage {
@@ -298,6 +314,65 @@ function sanitizeChapters(rawChapters: StructuredPodcastMetadataOutput["chapters
     .filter((chapter): chapter is Chapter => Boolean(chapter.title && chapter.time));
 }
 
+function buildFallbackSpeakerProfiles(
+  speakers: SpeakerSample[],
+  transcript: TranscriptLine[],
+): SpeakerProfile[] {
+  return normalizeSpeakerProfiles(speakers, transcript).map((profile) => {
+    const matchingLines = transcript.filter((line) => line.speakerId === profile.speakerId).slice(0, 3);
+    const grounding = matchingLines.map((line) => line.text.trim()).filter(Boolean);
+
+    return {
+      ...profile,
+      positioning: `${profile.displayName} is one of the speakers in this podcast and should stay grounded in the recorded conversation.`,
+      perspective:
+        grounding[0] ||
+        `${profile.displayName} should answer from their own role and perspective in the transcript.`,
+      speakingStyle: `Mirror ${profile.displayName}'s cadence and wording from the transcript while staying concise.`,
+      grounding,
+    };
+  });
+}
+
+function sanitizeSpeakerProfiles(
+  speakers: SpeakerSample[],
+  transcript: TranscriptLine[],
+  rawSpeakerProfiles?: StructuredSpeakerProfileOutput["speakerProfiles"],
+) {
+  const profileBySpeakerName = new Map(
+    (rawSpeakerProfiles ?? [])
+      .filter((profile) => Boolean(profile.speaker?.trim()))
+      .map((profile) => [profile.speaker?.trim() ?? "", profile] as const),
+  );
+
+  return normalizeSpeakerProfiles(speakers, transcript).map((profile) => {
+    const rawProfile = profileBySpeakerName.get(profile.displayName);
+    const transcriptGrounding = transcript
+      .filter((line) => line.speakerId === profile.speakerId)
+      .slice(0, 3)
+      .map((line) => line.text.trim())
+      .filter(Boolean);
+
+    return {
+      ...profile,
+      positioning:
+        rawProfile?.positioning?.trim() ||
+        `${profile.displayName} is one of the speakers in this podcast and should stay grounded in the recorded conversation.`,
+      perspective:
+        rawProfile?.perspective?.trim() ||
+        transcriptGrounding[0] ||
+        `${profile.displayName} should answer from their own role and perspective in the transcript.`,
+      speakingStyle:
+        rawProfile?.speakingStyle?.trim() ||
+        `Mirror ${profile.displayName}'s cadence and wording from the transcript while staying concise.`,
+      grounding: (() => {
+        const rawGrounding = rawProfile?.grounding?.map((entry) => entry.trim()).filter(Boolean).slice(0, 4) ?? [];
+        return rawGrounding.length > 0 ? rawGrounding : transcriptGrounding;
+      })(),
+    };
+  });
+}
+
 async function requestStructuredPodcastMetadata(input: {
   podcast: Podcast;
   transcriptPrompt: string;
@@ -373,6 +448,57 @@ async function requestStructuredPodcastSummaries(input: {
   });
 }
 
+async function requestStructuredSpeakerProfiles(input: {
+  podcast: Podcast;
+  transcriptPrompt: string;
+  settings: IntegrationSettings;
+  speakers: SpeakerSample[];
+}) {
+  const { podcast, transcriptPrompt, settings, speakers } = input;
+
+  return requestOpenAiCompatibleJson<StructuredSpeakerProfileOutput>(settings, {
+    temperature: 0.2,
+    max_tokens: 2200,
+    messages: [
+      {
+        role: "system",
+        content: [
+          "You are extracting speaker profiles for a podcast group chat experience.",
+          "Return JSON with this key only: speakerProfiles.",
+          "speakerProfiles must be an array of objects with these keys only: speaker, positioning, perspective, speakingStyle, grounding.",
+          "speaker must exactly match one of the provided speaker labels.",
+          "Each profile must stay grounded in the transcript only and must not invent facts, credentials, or background.",
+          "grounding must be a short array of direct transcript-backed ideas, quotes, or topics that justify the profile.",
+          "Keep each field concise and actionable for an LLM role prompt.",
+        ].join(" "),
+      },
+      {
+        role: "user",
+        content: [
+          `Podcast title: ${podcast.title}`,
+          `Speakers: ${speakers.map((speaker) => speaker.name).join(", ")}`,
+          "Transcript:",
+          transcriptPrompt,
+        ].join("\n\n"),
+      },
+    ],
+  });
+}
+
+async function requestStructuredSpeakerProfilesSafely(input: {
+  podcast: Podcast;
+  transcriptPrompt: string;
+  settings: IntegrationSettings;
+  speakers: SpeakerSample[];
+}) {
+  try {
+    return await requestStructuredSpeakerProfiles(input);
+  } catch (error) {
+    console.warn(`Failed to derive speaker profiles for podcast ${input.podcast.id}.`, error);
+    return null;
+  }
+}
+
 export async function generateLivePodcastOutput(input: {
   podcast: Podcast;
   uploadedFilePath: string;
@@ -394,8 +520,8 @@ export async function generateLivePodcastOutput(input: {
     {
       fileName: sourceFileName,
       fileBytes: await readFile(uploadedFilePath),
-      diarize: podcast.type === "multi",
-      referenceSpeakerCount: podcast.type === "multi" ? podcast.referenceCount : null,
+      diarize: true,
+      referenceSpeakerCount: podcast.referenceCount >= 2 ? podcast.referenceCount : null,
     },
   );
   const neutralSpeakerPresentation = buildSpeakerPresentation(
@@ -436,11 +562,25 @@ export async function generateLivePodcastOutput(input: {
     transcript: neutralSpeakerPresentation.transcript,
     rawSignals: structuredMetadata.knowledgeSignals,
   });
+  const structuredSpeakerProfiles = await requestStructuredSpeakerProfilesSafely({
+    podcast,
+    transcriptPrompt: excerptTranscriptForPrompt(presentedSpeakers.transcript),
+    settings,
+    speakers: presentedSpeakers.speakers,
+  });
   const aiHostSpeaker = presentedSpeakers.speakers.find((speaker) => speaker.name === aiHostLabel) ?? presentedSpeakers.speakers[0] ?? null;
 
   if (!aiHostSpeaker) {
     throw new Error("Failed to resolve an AI host speaker from the transcript.");
   }
+
+  const speakerProfiles = structuredSpeakerProfiles?.speakerProfiles
+    ? sanitizeSpeakerProfiles(
+        presentedSpeakers.speakers,
+        presentedSpeakers.transcript,
+        structuredSpeakerProfiles.speakerProfiles,
+      )
+    : buildFallbackSpeakerProfiles(presentedSpeakers.speakers, presentedSpeakers.transcript);
 
   return {
     duration: formatClock(Math.round(transcription.durationSeconds)),
@@ -455,6 +595,8 @@ export async function generateLivePodcastOutput(input: {
     summaries,
     scriptChunks: [],
     crawledPages,
+    detectedSpeakerCount: presentedSpeakers.speakers.length,
     speakers: presentedSpeakers.speakers,
+    speakerProfiles,
   } satisfies LiveProcessingOutput;
 }

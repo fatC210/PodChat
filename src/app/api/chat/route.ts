@@ -17,6 +17,8 @@ export async function POST(request: Request) {
       podcast: body.podcast,
       question: body.question,
       history: body.history,
+      mode: body.mode,
+      mentions: body.mentions,
       integrationSettings: body.integrationSettings ?? storedSettings,
     });
 
