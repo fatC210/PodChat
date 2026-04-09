@@ -509,6 +509,46 @@ describe("FloatingChat group mode", () => {
     expect(screen.queryByText("Guest")).not.toBeInTheDocument();
   });
 
+  it("uses different avatar tones for different speakers in group chat", async () => {
+    window.localStorage.setItem("podchat_chat_persist_v1:pod-group:group", "1");
+    window.localStorage.setItem(
+      "podchat_chat_session_v1:pod-group:group",
+      JSON.stringify([
+        {
+          id: "reply-1",
+          senderId: "speaker-1",
+          senderType: "speaker",
+          senderName: "Host",
+          text: "Host reply",
+          mentions: [],
+        },
+        {
+          id: "reply-2",
+          senderId: "speaker-2",
+          senderType: "speaker",
+          senderName: "Guest",
+          text: "Guest reply",
+        },
+      ]),
+    );
+
+    const { container } = render(<FloatingChat open onClose={vi.fn()} podcast={buildReadyPodcast()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /群聊|缇よ亰/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Host reply")).toBeInTheDocument();
+      expect(screen.getByText("Guest reply")).toBeInTheDocument();
+    });
+
+    const hostAvatar = container.querySelector('[data-speaker-id="speaker-1"]');
+    const guestAvatar = container.querySelector('[data-speaker-id="speaker-2"]');
+
+    expect(hostAvatar?.getAttribute("data-avatar-tone")).toBeTruthy();
+    expect(guestAvatar?.getAttribute("data-avatar-tone")).toBeTruthy();
+    expect(hostAvatar?.getAttribute("data-avatar-tone")).not.toBe(guestAvatar?.getAttribute("data-avatar-tone"));
+  });
+
   it("waits for reply audio before rendering the AI reply bubble", async () => {
     requestChatReplyMock.mockResolvedValue({
       mode: "personal",

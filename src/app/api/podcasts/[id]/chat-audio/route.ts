@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { normalizeSummaryEmotion } from "@/lib/podchat-data";
 import { getStoredPodcast } from "@/lib/server/podcast-store";
 import { readStoredIntegrationSettings } from "@/lib/server/settings-store";
-import { synthesizeTextWithElevenLabs } from "@/lib/server/elevenlabs";
+import { synthesizePodcastAudioWithRecovery } from "@/lib/server/podcast-audio";
 
 export async function POST(
   request: Request,
@@ -48,7 +48,11 @@ export async function POST(
       ? podcast.speakerProfiles.find((profile) => profile.speakerId === body.speakerId)
       : null;
     const settings = await readStoredIntegrationSettings();
-    const synthesis = await synthesizeTextWithElevenLabs(settings, {
+    const voiceIdOverride = speakerProfile?.groupVoiceId ?? podcast.aiHostVoiceId;
+    const synthesis = await synthesizePodcastAudioWithRecovery({
+      settings,
+      podcastId: podcast.id,
+      speakerId: body.speakerId,
       text,
       cacheKeyParts: [
         "chat-audio",
@@ -57,7 +61,7 @@ export async function POST(
         playbackEmotion,
         speechStyle || "default-style",
       ],
-      voiceIdOverride: speakerProfile?.groupVoiceId ?? podcast.aiHostVoiceId,
+      voiceIdOverride,
       emotion: playbackEmotion,
     });
     const audioBytes = await readFile(synthesis.audioPath);

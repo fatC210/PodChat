@@ -412,11 +412,15 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const saveIntegrationSettings = useCallback(async (settings: IntegrationSettings) => {
     const normalized = normalizeIntegrationSettings(settings);
+    const elevenLabsKeyChanged = integrationSettings.elevenlabs.trim() !== normalized.elevenlabs.trim();
     setIntegrationSettings(normalized);
 
     try {
       const response = await saveIntegrationSettingsRequest(normalized);
       setIntegrationSettings(response.settings);
+      if (elevenLabsKeyChanged) {
+        await reloadPodcasts();
+      }
     } catch (error) {
       void fetchIntegrationSettingsRequest()
         .then(({ settings: storedSettings }) => {
@@ -428,7 +432,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
       throw error;
     }
-  }, []);
+  }, [integrationSettings.elevenlabs, reloadPodcasts]);
 
   const value = useMemo(
     () => ({

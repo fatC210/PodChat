@@ -27,6 +27,31 @@ function hasAgentId(settings: Pick<IntegrationSettings, "elevenlabsAgentId">) {
   return Boolean(normalizeValue(settings.elevenlabsAgentId));
 }
 
+function shouldRecreateStoredAgent(detail: string) {
+  const normalizedDetail = detail.trim().toLowerCase();
+
+  return (
+    normalizedDetail.includes("not_found") ||
+    normalizedDetail.includes("agent_not_found") ||
+    normalizedDetail.includes("status 404") ||
+    normalizedDetail.includes("status 401") ||
+    normalizedDetail.includes("unauthorized")
+  );
+}
+
+async function createAndStoreBaseAgent(settings: IntegrationSettings) {
+  const agentId = await createBaseAgent(settings);
+  const nextSettings = await writeStoredIntegrationSettings(
+    normalizeIntegrationSettings({
+      ...settings,
+      elevenlabsAgentId: agentId,
+    }),
+  );
+
+  await ensureAgentOverridesEnabled(nextSettings, agentId);
+  return nextSettings;
+}
+
 async function createBaseAgent(settings: Pick<IntegrationSettings, "elevenlabs">) {
   const response = await fetchWithUpstreamErrorContext("ElevenLabs agent creation API", "https://api.elevenlabs.io/v1/convai/agents/create", {
     method: "POST",
@@ -186,20 +211,19 @@ export async function ensureStoredBaseAgent() {
   }
 
   if (hasAgentId(settings)) {
-    await ensureAgentOverridesEnabled(settings, settings.elevenlabsAgentId);
-    return settings;
+    try {
+      await ensureAgentOverridesEnabled(settings, settings.elevenlabsAgentId);
+      return settings;
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "Unknown ElevenLabs agent error.";
+
+      if (!shouldRecreateStoredAgent(detail)) {
+        throw error;
+      }
+    }
   }
 
-  const agentId = await createBaseAgent(settings);
-  const nextSettings = await writeStoredIntegrationSettings(
-    normalizeIntegrationSettings({
-      ...settings,
-      elevenlabsAgentId: agentId,
-    }),
-  );
-
-  await ensureAgentOverridesEnabled(nextSettings, agentId);
-  return nextSettings;
+  return createAndStoreBaseAgent(settings);
 }
 
 export async function getStoredConversationToken() {

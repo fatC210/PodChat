@@ -65,6 +65,35 @@ const PERSISTENCE_STORAGE_PREFIX = "podchat_chat_persist_v1";
 const PARTICIPANT_LIST_COLLAPSED_MAX_HEIGHT = 36;
 const CALL_WAVE_BAR_HEIGHTS = [38, 62, 82, 54, 72, 46];
 const IGNORABLE_RECOGNITION_ERRORS = new Set(["aborted", "no-speech"]);
+const SPEAKER_AVATAR_TONES = [
+  {
+    key: "accent",
+    avatarClass: "border border-accent/30 bg-accent/15 text-accent",
+    dotClass: "bg-accent",
+  },
+  {
+    key: "info",
+    avatarClass: "border border-info/30 bg-info/15 text-info",
+    dotClass: "bg-info",
+  },
+  {
+    key: "warning",
+    avatarClass: "border border-warning/30 bg-warning/15 text-warning",
+    dotClass: "bg-warning",
+  },
+  {
+    key: "success",
+    avatarClass: "border border-success/30 bg-success/15 text-success",
+    dotClass: "bg-success",
+  },
+] as const;
+
+const TRANSCRIPT_COLOR_TO_TONE_KEY = new Map<string, (typeof SPEAKER_AVATAR_TONES)[number]["key"]>([
+  ["text-accent", "accent"],
+  ["text-info", "info"],
+  ["text-warning", "warning"],
+  ["text-success", "success"],
+]);
 
 function getSessionStorageKey(podcastId: string, mode: ChatMode) {
   return `${SESSION_STORAGE_PREFIX}:${podcastId}:${mode}`;
@@ -72,6 +101,65 @@ function getSessionStorageKey(podcastId: string, mode: ChatMode) {
 
 function getPersistenceStorageKey(podcastId: string, mode: ChatMode) {
   return `${PERSISTENCE_STORAGE_PREFIX}:${podcastId}:${mode}`;
+}
+
+function hashSpeakerIdentity(value: string) {
+  let hash = 0;
+
+  for (const char of value) {
+    hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  }
+
+  return hash;
+}
+
+function resolveSpeakerToneFromTranscriptColor(color?: string | null) {
+  const toneKey = color ? TRANSCRIPT_COLOR_TO_TONE_KEY.get(color) : null;
+  return toneKey ? SPEAKER_AVATAR_TONES.find((tone) => tone.key === toneKey) ?? null : null;
+}
+
+function buildSpeakerToneMap(podcast: Podcast) {
+  const tonesBySpeakerId = new Map<string, (typeof SPEAKER_AVATAR_TONES)[number]>();
+
+  for (const line of podcast.transcript) {
+    if (!line.speakerId || tonesBySpeakerId.has(line.speakerId)) {
+      continue;
+    }
+
+    const transcriptTone = resolveSpeakerToneFromTranscriptColor(line.color);
+
+    if (transcriptTone) {
+      tonesBySpeakerId.set(line.speakerId, transcriptTone);
+    }
+  }
+
+  podcast.speakers.forEach((speaker, index) => {
+    if (!tonesBySpeakerId.has(speaker.id)) {
+      tonesBySpeakerId.set(speaker.id, SPEAKER_AVATAR_TONES[index % SPEAKER_AVATAR_TONES.length]);
+    }
+  });
+
+  podcast.speakerProfiles.forEach((profile, index) => {
+    if (!tonesBySpeakerId.has(profile.speakerId)) {
+      tonesBySpeakerId.set(profile.speakerId, SPEAKER_AVATAR_TONES[index % SPEAKER_AVATAR_TONES.length]);
+    }
+  });
+
+  return tonesBySpeakerId;
+}
+
+function getSpeakerTone(
+  tonesBySpeakerId: Map<string, (typeof SPEAKER_AVATAR_TONES)[number]>,
+  speakerId: string,
+  speakerName: string,
+) {
+  const directTone = tonesBySpeakerId.get(speakerId);
+
+  if (directTone) {
+    return directTone;
+  }
+
+  return SPEAKER_AVATAR_TONES[hashSpeakerIdentity(`${speakerId}:${speakerName}`) % SPEAKER_AVATAR_TONES.length];
 }
 
 function asHistory(messages: UiMessage[]): ChatHistoryMessage[] {
@@ -258,6 +346,7 @@ export default function FloatingChat({ open, onClose, podcast }: FloatingChatPro
   audioPlayingRef.current = audioPlaying;
 
   const participants = useMemo(() => buildChatParticipants(podcast), [podcast]);
+  const speakerTones = useMemo(() => buildSpeakerToneMap(podcast), [podcast]);
   const activeMode = groupCapable ? chatMode : "personal";
   const mentionSuggestions = useMemo(() => {
     const match = input.match(/(?:^|\s)(@[A-Za-z0-9_\-\u4e00-\u9fff]*)$/u);
@@ -1121,6 +1210,12 @@ export default function FloatingChat({ open, onClose, podcast }: FloatingChatPro
                     className="flex items-center gap-1 px-1.5 py-0.5"
                     title={t("chat.mentionSpeaker", { name: participant.name })}
                   >
+                    <span
+                      aria-hidden="true"
+                      className={`h-2 w-2 rounded-full ${
+                        getSpeakerTone(speakerTones, participant.id, participant.name).dotClass
+                      }`}
+                    />
                     <span className="font-medium text-foreground">{participant.handle}</span>
                     <span
                       className={`rounded-full px-1.5 py-0.5 ${
@@ -1173,31 +1268,38 @@ export default function FloatingChat({ open, onClose, podcast }: FloatingChatPro
               </div>
             )
           ) : (
-            messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex items-start gap-2 ${message.senderType === "user" ? "flex-row-reverse" : "flex-row"}`}
-              >
+            messages.map((message) => {
+              const speakerTone =
+                message.senderType === "speaker" ? getSpeakerTone(speakerTones, message.senderId, message.senderName) : null;
+
+              return (
                 <div
-                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
-                    message.senderType === "user"
-                      ? "bg-accent text-accent-foreground"
-                      : "border border-accent/30 bg-accent/15 text-accent"
-                  }`}
+                  key={message.id}
+                  className={`flex items-start gap-2 ${message.senderType === "user" ? "flex-row-reverse" : "flex-row"}`}
                 >
-                  {message.senderType === "user" ? t("chat.youAvatar") : message.senderName.slice(0, 2).toUpperCase()}
+                  <div
+                    data-avatar-tone={message.senderType === "user" ? "user" : speakerTone?.key}
+                    data-speaker-id={message.senderType === "speaker" ? message.senderId : undefined}
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                      message.senderType === "user"
+                        ? "bg-accent text-accent-foreground"
+                        : speakerTone?.avatarClass ?? "border border-accent/30 bg-accent/15 text-accent"
+                    }`}
+                  >
+                    {message.senderType === "user" ? t("chat.youAvatar") : message.senderName.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div
+                    className={`max-w-[80%] rounded-2xl px-3 py-2 text-[12px] leading-relaxed ${
+                      message.senderType === "user"
+                        ? "rounded-br-sm bg-accent text-accent-foreground"
+                        : "rounded-bl-sm bg-secondary text-foreground"
+                    }`}
+                  >
+                    {message.text}
+                  </div>
                 </div>
-                <div
-                  className={`max-w-[80%] rounded-2xl px-3 py-2 text-[12px] leading-relaxed ${
-                    message.senderType === "user"
-                      ? "rounded-br-sm bg-accent text-accent-foreground"
-                      : "rounded-bl-sm bg-secondary text-foreground"
-                  }`}
-                >
-                  {message.text}
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 

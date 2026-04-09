@@ -55,6 +55,19 @@ const dataDir = path.join(process.cwd(), ".podchat");
 const generatedDir = path.join(dataDir, "generated");
 const speakerColors = ["text-accent", "text-info", "text-warning", "text-success"];
 
+export function isElevenLabsVoiceNotFoundErrorMessage(detail: string) {
+  const normalizedDetail = detail.trim().toLowerCase();
+  return (
+    normalizedDetail.includes("voice_not_found") ||
+    normalizedDetail.includes("voice with voice_id") ||
+    normalizedDetail.includes("is not available for the current api key")
+  );
+}
+
+function buildMissingVoiceMessage(voiceId: string) {
+  return `The ElevenLabs voice ${voiceId} is not available for the current API key. This podcast is still referencing a cloned voice from a different ElevenLabs account or workspace. Reclone the AI host voice and any affected speaker voices after switching API keys.`;
+}
+
 export function hasElevenLabsConfig(settings: Pick<IntegrationSettings, "elevenlabs">) {
   return Boolean(normalizeValue(settings.elevenlabs));
 }
@@ -424,7 +437,13 @@ export async function synthesizeTextWithElevenLabs(
   });
 
   if (!response.ok) {
-    throw new Error(await readUpstreamError(response));
+    const detail = await readUpstreamError(response);
+
+    if (isElevenLabsVoiceNotFoundErrorMessage(detail)) {
+      throw new Error(buildMissingVoiceMessage(voiceId));
+    }
+
+    throw new Error(detail);
   }
 
   const bytes = Buffer.from(await response.arrayBuffer());

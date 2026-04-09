@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getSummary, isPodcastReady, normalizeSummaryEmotion, summaryDurations } from "@/lib/podchat-data";
 import { getStoredPodcast } from "@/lib/server/podcast-store";
 import { readStoredIntegrationSettings } from "@/lib/server/settings-store";
-import { synthesizeTextWithElevenLabs } from "@/lib/server/elevenlabs";
+import { synthesizePodcastAudioWithRecovery } from "@/lib/server/podcast-audio";
 import { ensureSummaryTranslation } from "@/lib/server/summary-translations";
 
 export async function GET(
@@ -53,7 +53,9 @@ export async function GET(
           settings,
         })).text
       : summary.text;
-    const synthesis = await synthesizeTextWithElevenLabs(settings, {
+    const synthesis = await synthesizePodcastAudioWithRecovery({
+      settings,
+      podcastId: podcast.id,
       text: resolvedSummaryText,
       cacheKeyParts: ["summary-audio", podcast.id, String(duration), targetLang || "original", playbackEmotion],
       voiceIdOverride: podcast.aiHostVoiceId,

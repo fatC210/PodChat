@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { normalizeIntegrationSettings, type IntegrationSettings } from "@/lib/podchat-data";
 import { enqueueConfiguringPodcasts } from "@/lib/server/podcast-processing";
+import { resetStoredPodcastVoicesForElevenLabsKeyChange } from "@/lib/server/podcast-voice-reset";
 import {
   readStoredIntegrationSettings,
   writeStoredIntegrationSettings,
@@ -21,7 +22,22 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Invalid settings payload." }, { status: 400 });
     }
 
-    const settings = await writeStoredIntegrationSettings(normalizeIntegrationSettings(body.settings));
+    const currentSettings = await readStoredIntegrationSettings();
+    const nextSettings = normalizeIntegrationSettings(body.settings);
+    const elevenLabsKeyChanged = currentSettings.elevenlabs.trim() !== nextSettings.elevenlabs.trim();
+    const settings = await writeStoredIntegrationSettings(
+      elevenLabsKeyChanged
+        ? {
+            ...nextSettings,
+            elevenlabsAgentId: "",
+          }
+        : nextSettings,
+    );
+
+    if (elevenLabsKeyChanged) {
+      await resetStoredPodcastVoicesForElevenLabsKeyChange();
+    }
+
     await enqueueConfiguringPodcasts();
     return NextResponse.json({ settings });
   } catch (error) {

@@ -17,7 +17,10 @@ vi.mock("node:fs/promises", () => ({
   writeFile: writeFileMock,
 }));
 
-import { synthesizeTextWithElevenLabs } from "@/lib/server/elevenlabs";
+import {
+  isElevenLabsVoiceNotFoundErrorMessage,
+  synthesizeTextWithElevenLabs,
+} from "@/lib/server/elevenlabs";
 
 describe("synthesizeTextWithElevenLabs", () => {
   beforeEach(() => {
@@ -40,7 +43,7 @@ describe("synthesizeTextWithElevenLabs", () => {
     await synthesizeTextWithElevenLabs(
       { elevenlabs: "test-key" },
       {
-        text: "你好！我也很高兴加入这场对话。",
+        text: "你好，很高兴加入这场对话。",
         cacheKeyParts: ["chat-audio", "podcast-1", "speaker-2"],
         voiceIdOverride: "voice-2",
         emotion: "lighthearted",
@@ -57,7 +60,37 @@ describe("synthesizeTextWithElevenLabs", () => {
     expect(requestBody).toMatchObject({
       language_code: "zh",
       model_id: "eleven_multilingual_v2",
-      text: "你好！我也很高兴加入这场对话。",
+      text: "你好，很高兴加入这场对话。",
     });
+  });
+
+  it("surfaces a reclone hint when the stored voice is missing for the current API key", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ detail: "voice_not_found" }), {
+        status: 404,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    );
+
+    await expect(
+      synthesizeTextWithElevenLabs(
+        { elevenlabs: "test-key" },
+        {
+          text: "Hello there",
+          cacheKeyParts: ["summary-audio", "podcast-1"],
+          voiceIdOverride: "missing-voice",
+        },
+      ),
+    ).rejects.toThrow(/Reclone the AI host voice and any affected speaker voices/i);
+  });
+
+  it("recognizes the wrapped missing-voice message used after upstream normalization", () => {
+    expect(
+      isElevenLabsVoiceNotFoundErrorMessage(
+        "The ElevenLabs voice cWO3SWOrlnvVaWPeCMMO is not available for the current API key.",
+      ),
+    ).toBe(true);
   });
 });
