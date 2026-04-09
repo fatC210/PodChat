@@ -11,6 +11,7 @@ import {
   writeStoredIntegrationSettingsToLocalStorage,
 } from "@/lib/integration-settings-storage";
 import type { IntegrationSettings, Podcast, SavePodcastInput } from "@/lib/podchat-data";
+import { getMaxUploadSizeMb, isFileTooLarge } from "@/lib/upload-limits";
 
 export interface AgentSessionResponse {
   agentId: string;
@@ -19,6 +20,10 @@ export interface AgentSessionResponse {
 }
 
 async function readErrorMessage(response: Response) {
+  if (response.status === 413) {
+    return `The uploaded file is too large for this deployment. Try a file under ${getMaxUploadSizeMb()} MB, or switch to external object storage for larger uploads.`;
+  }
+
   try {
     const data = await response.json();
     if (typeof data?.error === "string") {
@@ -108,6 +113,12 @@ export async function fetchPodcasts() {
 }
 
 export async function createPodcast(input: SavePodcastInput, file: File) {
+  if (isFileTooLarge(file)) {
+    throw new Error(
+      `The uploaded file is too large for this deployment. Try a file under ${getMaxUploadSizeMb()} MB, or switch to external object storage for larger uploads.`,
+    );
+  }
+
   const formData = new FormData();
   formData.set("file", file);
   formData.set("title", input.title);

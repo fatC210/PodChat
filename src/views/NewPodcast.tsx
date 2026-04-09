@@ -8,6 +8,7 @@ import { useI18n } from "@/lib/i18n";
 import { useAppData } from "@/lib/app-data";
 import { useBackNavigation } from "@/lib/navigation";
 import { personaPresets, type PersonaPreset, type PodcastType } from "@/lib/podchat-data";
+import { getMaxUploadSizeMb, isFileTooLarge } from "@/lib/upload-limits";
 
 const wizardSteps = [
   { key: "upload", icon: Upload, titleKey: "wizard.step1", descKey: "wizard.step1Desc", pillKey: "wizard.pill.upload" },
@@ -31,9 +32,11 @@ export default function NewPodcastPage() {
   const [title, setTitle] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileMeta, setFileMeta] = useState<{ name: string; sizeMb: number } | null>(null);
+  const [fileError, setFileError] = useState("");
   const [selectedPreset, setSelectedPreset] = useState("");
   const [customPersonality, setCustomPersonality] = useState("");
   const [saving, setSaving] = useState(false);
+  const maxUploadSizeMb = getMaxUploadSizeMb();
 
   useEffect(() => {
     if (!hydrated) {
@@ -51,12 +54,24 @@ export default function NewPodcastPage() {
         ? { name: draftPodcast.sourceFileName, sizeMb: draftPodcast.sourceFileSizeMb }
         : null,
     );
+    setFileError("");
     setSelectedPreset(presetId);
     setCustomPersonality(draftPodcast?.persona.customPersonality ?? "");
   }, [draftPodcast, hydrated]);
 
   const handleFile = (file: File) => {
+    if (isFileTooLarge(file)) {
+      const message =
+        lang === "zh"
+          ? `文件过大，上传失败。当前部署环境最多支持 ${maxUploadSizeMb} MB。`
+          : `Upload failed. This deployment accepts files up to ${maxUploadSizeMb} MB.`;
+      setFileError(message);
+      toast.error(message);
+      return;
+    }
+
     const nextTitle = file.name.replace(/\.[^.]+$/, "").replace(/[-_]/g, " ");
+    setFileError("");
     setSelectedFile(file);
     setFileMeta({ name: file.name, sizeMb: Number((file.size / 1024 / 1024).toFixed(1)) });
     setTitle((current) => current || nextTitle);
@@ -210,7 +225,11 @@ export default function NewPodcastPage() {
           <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
             <label
               className={`flex flex-col items-center justify-center h-56 rounded-2xl border-2 border-dashed cursor-pointer transition-all ${
-                fileMeta ? "border-accent bg-accent/5" : "border-border hover:border-muted-foreground"
+                fileError
+                  ? "border-destructive/70 bg-destructive/5"
+                  : fileMeta
+                  ? "border-accent bg-accent/5"
+                  : "border-border hover:border-muted-foreground"
               }`}
               onDrop={(event) => {
                 event.preventDefault();
@@ -231,6 +250,11 @@ export default function NewPodcastPage() {
                   <p className="text-sm text-muted-foreground">{t("wizard.upload.drag")}</p>
                   <p className="text-xs text-accent font-medium mt-2">{t("wizard.upload.browse")}</p>
                   <p className="text-[11px] text-muted-foreground mt-1">{t("wizard.upload.formats")}</p>
+                  <p className="text-[11px] text-accent mt-1">
+                    {lang === "zh"
+                      ? `最大上传大小：${maxUploadSizeMb} MB`
+                      : `Maximum upload size: ${maxUploadSizeMb} MB`}
+                  </p>
                 </div>
               )}
               <input
@@ -240,9 +264,11 @@ export default function NewPodcastPage() {
                 onChange={(event) => {
                   const file = event.target.files?.[0];
                   if (file) handleFile(file);
+                  event.currentTarget.value = "";
                 }}
               />
             </label>
+            {fileError ? <p className="text-xs text-destructive">{fileError}</p> : null}
 
             <div>
               <label className="text-xs text-muted-foreground mb-2 block">{t("wizard.podcastTitle")}</label>
