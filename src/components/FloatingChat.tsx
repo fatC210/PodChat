@@ -346,6 +346,10 @@ export default function FloatingChat({ open, onClose, podcast }: FloatingChatPro
   audioPlayingRef.current = audioPlaying;
 
   const participants = useMemo(() => buildChatParticipants(podcast), [podcast]);
+  const participantHandleById = useMemo(
+    () => new Map(participants.map((participant) => [participant.id, participant.handle] as const)),
+    [participants],
+  );
   const speakerTones = useMemo(() => buildSpeakerToneMap(podcast), [podcast]);
   const activeMode = groupCapable ? chatMode : "personal";
   const mentionSuggestions = useMemo(() => {
@@ -1271,23 +1275,47 @@ export default function FloatingChat({ open, onClose, podcast }: FloatingChatPro
             messages.map((message) => {
               const speakerTone =
                 message.senderType === "speaker" ? getSpeakerTone(speakerTones, message.senderId, message.senderName) : null;
+              const avatarMentionHandle =
+                activeMode !== "group"
+                  ? null
+                  : message.senderType === "user"
+                    ? "@all"
+                    : participantHandleById.get(message.senderId) ?? null;
+              const avatarClassName = `flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                message.senderType === "user"
+                  ? "bg-accent text-accent-foreground"
+                  : speakerTone?.avatarClass ?? "border border-accent/30 bg-accent/15 text-accent"
+              }`;
+              const avatarLabel =
+                message.senderType === "user" ? t("chat.youAvatar") : message.senderName.slice(0, 2).toUpperCase();
 
               return (
                 <div
                   key={message.id}
                   className={`flex items-start gap-2 ${message.senderType === "user" ? "flex-row-reverse" : "flex-row"}`}
                 >
-                  <div
-                    data-avatar-tone={message.senderType === "user" ? "user" : speakerTone?.key}
-                    data-speaker-id={message.senderType === "speaker" ? message.senderId : undefined}
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
-                      message.senderType === "user"
-                        ? "bg-accent text-accent-foreground"
-                        : speakerTone?.avatarClass ?? "border border-accent/30 bg-accent/15 text-accent"
-                    }`}
-                  >
-                    {message.senderType === "user" ? t("chat.youAvatar") : message.senderName.slice(0, 2).toUpperCase()}
-                  </div>
+                  {avatarMentionHandle ? (
+                    <button
+                      type="button"
+                      data-avatar-tone={message.senderType === "user" ? "user" : speakerTone?.key}
+                      data-speaker-id={message.senderType === "speaker" ? message.senderId : undefined}
+                      data-mention-handle={avatarMentionHandle}
+                      onClick={() => insertMention(avatarMentionHandle)}
+                      aria-label={avatarMentionHandle}
+                      title={message.senderType === "user" ? "@all" : t("chat.mentionSpeaker", { name: message.senderName })}
+                      className={`${avatarClassName} cursor-pointer transition-transform hover:scale-105 focus:outline-none focus:ring-1 focus:ring-accent`}
+                    >
+                      {avatarLabel}
+                    </button>
+                  ) : (
+                    <div
+                      data-avatar-tone={message.senderType === "user" ? "user" : speakerTone?.key}
+                      data-speaker-id={message.senderType === "speaker" ? message.senderId : undefined}
+                      className={avatarClassName}
+                    >
+                      {avatarLabel}
+                    </div>
+                  )}
                   <div
                     className={`max-w-[80%] rounded-2xl px-3 py-2 text-[12px] leading-relaxed ${
                       message.senderType === "user"

@@ -425,6 +425,69 @@ describe("FloatingChat group mode", () => {
     expect(screen.getByPlaceholderText("发消息，支持 @某人 和 @all")).toHaveValue("@guest ");
   });
 
+  it("clicks a speaker avatar to refill the matching @mention", async () => {
+    window.localStorage.setItem("podchat_chat_persist_v1:pod-group:group", "1");
+    window.localStorage.setItem(
+      "podchat_chat_session_v1:pod-group:group",
+      JSON.stringify([
+        {
+          id: "reply-1",
+          senderId: "speaker-2",
+          senderType: "speaker",
+          senderName: "Guest",
+          text: "Guest reply",
+          mentions: [],
+        },
+      ]),
+    );
+
+    const { container } = render(<FloatingChat open onClose={vi.fn()} podcast={buildReadyPodcast()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: buildT("zh")("chat.mode.group") }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Guest reply")).toBeInTheDocument();
+    });
+
+    const guestAvatar = container.querySelector('[data-speaker-id="speaker-2"][data-mention-handle="@guest"]');
+    expect(guestAvatar).toBeTruthy();
+
+    fireEvent.click(guestAvatar!);
+
+    expect(screen.getByRole("textbox")).toHaveValue("@guest ");
+  });
+
+  it("clicks your own avatar to refill @all", async () => {
+    window.localStorage.setItem("podchat_chat_persist_v1:pod-group:group", "1");
+    window.localStorage.setItem(
+      "podchat_chat_session_v1:pod-group:group",
+      JSON.stringify([
+        {
+          id: "user-1",
+          senderId: "user",
+          senderType: "user",
+          senderName: "你",
+          text: "我来问个问题",
+        },
+      ]),
+    );
+
+    const { container } = render(<FloatingChat open onClose={vi.fn()} podcast={buildReadyPodcast()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: buildT("zh")("chat.mode.group") }));
+
+    await waitFor(() => {
+      expect(screen.getByText("我来问个问题")).toBeInTheDocument();
+    });
+
+    const yourAvatar = container.querySelector('[data-avatar-tone="user"][data-mention-handle="@all"]');
+    expect(yourAvatar).toBeTruthy();
+
+    fireEvent.click(yourAvatar!);
+
+    expect(screen.getByRole("textbox")).toHaveValue("@all ");
+  });
+
   it("cancels the personal welcome playback before it starts when switching into group mode", async () => {
     const podcast = buildReadyPodcast();
     const greeting = buildChatGreeting(podcast);
