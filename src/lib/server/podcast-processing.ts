@@ -24,15 +24,22 @@ function getProcessorRuntime() {
     __podchatProcessorRuntime?: ProcessorRuntime;
   };
 
-  if (!scopedGlobal.__podchatProcessorRuntime) {
-    scopedGlobal.__podchatProcessorRuntime = {
-      activePodcastIds: new Set<string>(),
-      integrationSettingsByPodcastId: new Map<string, IntegrationSettings>(),
-      resumedPendingPodcasts: false,
-    };
-  }
+  const existingRuntime = scopedGlobal.__podchatProcessorRuntime as Partial<ProcessorRuntime> | undefined;
 
-  return scopedGlobal.__podchatProcessorRuntime;
+  const runtime: ProcessorRuntime = {
+    activePodcastIds:
+      existingRuntime?.activePodcastIds instanceof Set
+        ? existingRuntime.activePodcastIds
+        : new Set<string>(),
+    integrationSettingsByPodcastId:
+      existingRuntime?.integrationSettingsByPodcastId instanceof Map
+        ? existingRuntime.integrationSettingsByPodcastId
+        : new Map<string, IntegrationSettings>(),
+    resumedPendingPodcasts: existingRuntime?.resumedPendingPodcasts === true,
+  };
+
+  scopedGlobal.__podchatProcessorRuntime = runtime;
+  return runtime;
 }
 
 async function applyProcessingPatch(

@@ -135,4 +135,34 @@ describe("enqueuePodcastProcessing", () => {
     expect(currentPodcast.summaries).toHaveLength(1);
     expect(clonePodcastSpeakerVoiceMock).toHaveBeenCalledOnce();
   });
+
+  it("repairs a legacy runtime object before storing integration settings", () => {
+    const scopedGlobal = globalThis as typeof globalThis & {
+      __podchatProcessorRuntime?: unknown;
+    };
+
+    scopedGlobal.__podchatProcessorRuntime = {
+      activePodcastIds: new Set<string>(),
+      resumedPendingPodcasts: false,
+    };
+
+    expect(() =>
+      setPodcastProcessingIntegrationSettings(currentPodcast.id, {
+        elevenlabs: "test-elevenlabs-key",
+        elevenlabsVoiceId: "",
+        elevenlabsAgentId: "",
+        firecrawl: "test-firecrawl-key",
+        llmKey: "test-llm-key",
+        llmUrl: "https://example.com/v1",
+        llmModel: "test-model",
+      }),
+    ).not.toThrow();
+
+    const repairedRuntime = scopedGlobal.__podchatProcessorRuntime as {
+      integrationSettingsByPodcastId?: Map<string, unknown>;
+    };
+
+    expect(repairedRuntime.integrationSettingsByPodcastId).toBeInstanceOf(Map);
+    expect(repairedRuntime.integrationSettingsByPodcastId?.has(currentPodcast.id)).toBe(true);
+  });
 });
