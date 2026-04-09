@@ -343,6 +343,68 @@ describe("FloatingChat group mode", () => {
     });
   });
 
+  it("does not enqueue the group welcome twice when podcast data refreshes during playback", async () => {
+    const podcast = buildReadyPodcast();
+    const personalGreeting = buildChatGreeting(podcast);
+    const groupGreeting = buildGroupChatGreeting(podcast);
+    const groupWelcomeResolvers: Array<(value: Blob) => void> = [];
+
+    requestChatSpeechMock.mockReset();
+    requestChatSpeechMock.mockResolvedValueOnce(new Blob(["personal"], { type: "audio/mpeg" }));
+
+    const { rerender } = render(<FloatingChat open onClose={vi.fn()} podcast={podcast} />);
+
+    await waitFor(() => {
+      expect(requestChatSpeechMock).toHaveBeenCalledWith(podcast.id, personalGreeting, undefined);
+    });
+    await screen.findByText(personalGreeting);
+
+    requestChatSpeechMock.mockReset();
+    requestChatSpeechMock.mockImplementation(
+      () =>
+        new Promise<Blob>((resolve) => {
+          groupWelcomeResolvers.push(resolve);
+        }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: buildT("zh")("chat.mode.group") }));
+
+    await waitFor(() => {
+      expect(requestChatSpeechMock).toHaveBeenCalledWith(podcast.id, groupGreeting, "speaker-1");
+    });
+
+    rerender(
+      <FloatingChat
+        open
+        onClose={vi.fn()}
+        podcast={{
+          ...podcast,
+          speakerProfiles: podcast.speakerProfiles.map((profile) => ({
+            ...profile,
+            groupVoiceName: `${profile.groupVoiceName ?? profile.displayName} updated`,
+          })),
+        }}
+      />,
+    );
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(requestChatSpeechMock).toHaveBeenCalledTimes(1);
+    expect(groupWelcomeResolvers).toHaveLength(1);
+
+    await act(async () => {
+      for (const resolve of groupWelcomeResolvers) {
+        resolve(new Blob(["group"], { type: "audio/mpeg" }));
+      }
+      await Promise.resolve();
+    });
+
+    expect(await screen.findByText(groupGreeting)).toBeInTheDocument();
+    expect(screen.getAllByText(groupGreeting)).toHaveLength(1);
+  });
+
   it("shows mention suggestions in group mode", async () => {
     render(<FloatingChat open onClose={vi.fn()} podcast={buildReadyPodcast()} />);
 
@@ -732,6 +794,143 @@ describe("FloatingChat group mode", () => {
     expect(listeningLabel.previousElementSibling).toHaveAttribute("data-call-state", "listening");
     expect(startMock.mock.calls.length).toBeGreaterThanOrEqual(2);
     expect(stopMock).toHaveBeenCalled();
+
+    playSpy.mockRestore();
+  });
+
+  it("keeps listening during reply playback so voice input can interrupt the current answer", async () => {
+    const { instances, stopMock } = installSpeechRecognitionMock();
+    const playSpy = vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(() => Promise.resolve());
+    const pauseSpy = vi.spyOn(HTMLMediaElement.prototype, "pause");
+    const podcast = buildReadyPodcast();
+    const greeting = buildChatGreeting(podcast);
+
+    requestChatReplyMock
+      .mockResolvedValueOnce({
+        mode: "personal",
+        provider: "llm",
+        reply: "First reply",
+      })
+      .mockResolvedValueOnce({
+        mode: "personal",
+        provider: "llm",
+        reply: "Interrupted reply",
+      });
+
+    render(<FloatingChat open onClose={vi.fn()} podcast={podcast} />);
+
+    await waitFor(() => {
+      expect(requestChatSpeechMock).toHaveBeenCalledWith(podcast.id, greeting, undefined);
+    });
+    await screen.findByText(greeting);
+
+    requestChatSpeechMock.mockClear();
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "Tell me more" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /send|common\.send|\u53d1\u9001/i }));
+
+    await waitFor(() => {
+      expect(requestChatSpeechMock).toHaveBeenCalledWith(podcast.id, "First reply", undefined);
+    });
+
+    expect(stopMock).not.toHaveBeenCalled();
+
+    const recognition = instances.at(-1);
+    expect(recognition).toBeTruthy();
+
+    act(() => {
+      recognition?.onresult?.({
+        results: [{ isFinal: true, 0: { transcript: "Wait, one more thing" } }],
+      });
+    });
+
+    await waitFor(() => {
+      expect(requestChatReplyMock).toHaveBeenCalledTimes(2);
+    });
+
+    expect(requestChatReplyMock.mock.calls[1]?.[0]).toMatchObject({
+      question: "Wait, one more thing",
+    });
+    expect(pauseSpy).toHaveBeenCalled();
+
+    playSpy.mockRestore();
+  });
+
+  it("lets voice input interrupt an in-flight generated reply before the old answer arrives", async () => {
+    const { instances, stopMock } = installSpeechRecognitionMock();
+    const playSpy = vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(function (this: HTMLMediaElement) {
+      queueMicrotask(() => {
+        this.onended?.(new Event("ended"));
+      });
+      return Promise.resolve();
+    });
+    const podcast = buildReadyPodcast();
+    const greeting = buildChatGreeting(podcast);
+    let resolveFirstReply:
+      | ((value: { mode: "personal"; provider: "llm"; reply: string }) => void)
+      | null = null;
+
+    requestChatReplyMock
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirstReply = resolve;
+          }),
+      )
+      .mockResolvedValueOnce({
+        mode: "personal",
+        provider: "llm",
+        reply: "New answer",
+      });
+
+    render(<FloatingChat open onClose={vi.fn()} podcast={podcast} />);
+
+    await waitFor(() => {
+      expect(requestChatSpeechMock).toHaveBeenCalledWith(podcast.id, greeting, undefined);
+    });
+    await screen.findByText(greeting);
+
+    requestChatSpeechMock.mockClear();
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "Original question" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /send|common\.send|\u53d1\u9001/i }));
+
+    await waitFor(() => {
+      expect(requestChatReplyMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(stopMock).not.toHaveBeenCalled();
+
+    const recognition = instances.at(-1);
+    expect(recognition).toBeTruthy();
+
+    act(() => {
+      recognition?.onresult?.({
+        results: [{ isFinal: true, 0: { transcript: "Actually answer this instead" } }],
+      });
+    });
+
+    await waitFor(() => {
+      expect(requestChatReplyMock).toHaveBeenCalledTimes(2);
+    });
+
+    await act(async () => {
+      resolveFirstReply?.({
+        mode: "personal",
+        provider: "llm",
+        reply: "Old answer",
+      });
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(requestChatSpeechMock).toHaveBeenCalledWith(podcast.id, "New answer", undefined);
+    });
+
+    expect(await screen.findByText("New answer")).toBeInTheDocument();
+    expect(screen.queryByText("Old answer")).not.toBeInTheDocument();
 
     playSpy.mockRestore();
   });

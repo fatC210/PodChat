@@ -176,6 +176,16 @@ function resolveReplySpeechText(text: string, speechText?: string) {
     : text;
 }
 
+function matchesCurrentReplyTranscript(transcript: string, currentReplyText?: string | null) {
+  const normalizedTranscript = normalizeComparableReplyText(transcript);
+  const normalizedReply = currentReplyText ? normalizeComparableReplyText(currentReplyText) : "";
+
+  return Boolean(normalizedTranscript && normalizedReply) &&
+    (normalizedTranscript === normalizedReply ||
+      normalizedReply.includes(normalizedTranscript) ||
+      normalizedTranscript.includes(normalizedReply));
+}
+
 function CallWaveform({ animated }: { animated: boolean }) {
   return (
     <div aria-hidden="true" className="flex h-5 items-center gap-[3px]">
@@ -231,9 +241,21 @@ export default function FloatingChat({ open, onClose, podcast }: FloatingChatPro
   const inputRef = useRef<HTMLInputElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
   const participantListRef = useRef<HTMLDivElement | null>(null);
+  const sessionInitializationKeyRef = useRef<string | null>(null);
   const langRef = useRef(lang);
+  const messagesRef = useRef(messages);
+  const sendingRef = useRef(sending);
+  const pendingWelcomeRef = useRef<PendingWelcomeMessage | null>(pendingWelcome);
+  const audioPendingRef = useRef(audioPending);
+  const audioPlayingRef = useRef(audioPlaying);
+  const activeReplySpeechTextRef = useRef<string | null>(null);
 
   langRef.current = lang;
+  messagesRef.current = messages;
+  sendingRef.current = sending;
+  pendingWelcomeRef.current = pendingWelcome;
+  audioPendingRef.current = audioPending;
+  audioPlayingRef.current = audioPlaying;
 
   const participants = useMemo(() => buildChatParticipants(podcast), [podcast]);
   const activeMode = groupCapable ? chatMode : "personal";
@@ -304,6 +326,9 @@ export default function FloatingChat({ open, onClose, podcast }: FloatingChatPro
 
   const stopAudioPlayback = useCallback(() => {
     turnRef.current += 1;
+    activeReplySpeechTextRef.current = null;
+    audioPendingRef.current = false;
+    audioPlayingRef.current = false;
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.removeAttribute("src");
@@ -314,6 +339,14 @@ export default function FloatingChat({ open, onClose, podcast }: FloatingChatPro
     setAudioPlaying(false);
     setReplyingSpeakerName(null);
   }, [revokeCurrentAudioUrl]);
+
+  const interruptConversationTurn = useCallback(() => {
+    pendingWelcomeRef.current = null;
+    sendingRef.current = false;
+    setPendingWelcome(null);
+    setSending(false);
+    stopAudioPlayback();
+  }, [stopAudioPlayback]);
 
   const switchChatMode = useCallback(
     (nextMode: ChatMode) => {
@@ -458,6 +491,7 @@ export default function FloatingChat({ open, onClose, podcast }: FloatingChatPro
   const resolveInitialMessages = useCallback(
     (mode: ChatMode, existingMessages: UiMessage[]) => {
       if (existingMessages.length > 0) {
+        pendingWelcomeRef.current = null;
         setPendingWelcome(null);
         return existingMessages;
       }
@@ -472,10 +506,12 @@ export default function FloatingChat({ open, onClose, podcast }: FloatingChatPro
         mentions: [],
       };
 
-      setPendingWelcome({
+      const nextPendingWelcome = {
         mode,
         message: welcomeMessage,
-      });
+      };
+      pendingWelcomeRef.current = nextPendingWelcome;
+      setPendingWelcome(nextPendingWelcome);
 
       return [];
     },
@@ -508,9 +544,15 @@ export default function FloatingChat({ open, onClose, podcast }: FloatingChatPro
       setSending(false);
       setVoiceError(null);
       setSessionBootstrapped(false);
+      sessionInitializationKeyRef.current = null;
       return;
     }
 
+    if (sessionInitializationKeyRef.current === sessionStorageKey) {
+      return;
+    }
+
+    sessionInitializationKeyRef.current = sessionStorageKey;
     const storedPersistence = window.localStorage.getItem(persistenceStorageKey);
     const nextPersist = storedPersistence === "1";
     setPersistSession(nextPersist);
@@ -645,6 +687,7 @@ export default function FloatingChat({ open, onClose, podcast }: FloatingChatPro
 
   const playReplyQueue = useCallback(
     async (replies: ChatReplyMessage[], turnId: number, mode: ChatMode = activeMode) => {
+      audioPendingRef.current = true;
       setAudioPending(true);
 
       try {
@@ -690,7 +733,9 @@ export default function FloatingChat({ open, onClose, podcast }: FloatingChatPro
             const audio = audioRef.current ?? new Audio();
             audioRef.current = audio;
             audio.src = url;
+            activeReplySpeechTextRef.current = spokenText;
             if (turnId === turnRef.current) {
+              audioPlayingRef.current = true;
               setAudioPlaying(true);
             }
 
@@ -724,13 +769,16 @@ export default function FloatingChat({ open, onClose, podcast }: FloatingChatPro
             toast.error(error instanceof Error ? error.message : t("chat.error.playReplyAudio"));
           } finally {
             revokeCurrentAudioUrl();
+            activeReplySpeechTextRef.current = null;
             if (turnId === turnRef.current) {
+              audioPlayingRef.current = false;
               setAudioPlaying(false);
             }
           }
         }
       } finally {
         if (turnId === turnRef.current) {
+          audioPendingRef.current = false;
           setAudioPending(false);
           setReplyingSpeakerName(null);
         }
@@ -754,20 +802,35 @@ export default function FloatingChat({ open, onClose, podcast }: FloatingChatPro
 
     const turnId = turnRef.current;
     void playReplyQueue([pendingWelcome.message], turnId, pendingWelcome.mode);
+    pendingWelcomeRef.current = null;
     setPendingWelcome(null);
   }, [groupVoicePrepSettled, open, pendingWelcome, playReplyQueue, podcast.speakerProfiles]);
 
   const submitMessage = useCallback(
-    async (rawText: string) => {
+    async (rawText: string, options?: { allowInterruptDuringGeneration?: boolean }) => {
       const nextText = rawText.trim();
+      const allowInterruptDuringGeneration = options?.allowInterruptDuringGeneration ?? false;
 
-      if (!nextText || sending) {
+      if (!nextText) {
         return;
       }
 
-      setPendingWelcome(null);
-      stopAudioPlayback();
+      if (sendingRef.current && !allowInterruptDuringGeneration) {
+        return;
+      }
+
+      const hasInterruptibleTurn =
+        audioPendingRef.current ||
+        audioPlayingRef.current ||
+        Boolean(pendingWelcomeRef.current) ||
+        sendingRef.current;
+
+      if (hasInterruptibleTurn) {
+        interruptConversationTurn();
+      }
+
       const turnId = turnRef.current;
+      sendingRef.current = true;
       setSending(true);
       setInput("");
 
@@ -778,7 +841,8 @@ export default function FloatingChat({ open, onClose, podcast }: FloatingChatPro
         senderName: t("chat.youName"),
         text: nextText,
       };
-      const nextHistory = [...messages, nextUserMessage];
+      const nextHistory = [...messagesRef.current, nextUserMessage];
+      messagesRef.current = nextHistory;
       setMessages(nextHistory);
 
       try {
@@ -837,29 +901,24 @@ export default function FloatingChat({ open, onClose, podcast }: FloatingChatPro
         toast.error(error instanceof Error ? error.message : t("chat.error.sendMessage"));
       } finally {
         if (turnId === turnRef.current) {
+          sendingRef.current = false;
           setSending(false);
         }
       }
     },
     [
       activeMode,
-      messages,
       nextMessageId,
       playReplyQueue,
       podcast,
-      sending,
-      stopAudioPlayback,
+      interruptConversationTurn,
       t,
     ],
   );
 
   useEffect(() => {
     const Recognition = getSpeechRecognitionConstructor();
-    const shouldRun =
-      open &&
-      !voiceSessionBusy &&
-      groupVoiceReadyForConversation &&
-      Recognition !== null;
+    const shouldRun = open && groupVoiceReadyForConversation && Recognition !== null;
 
     setVoiceSupported(Boolean(Recognition));
 
@@ -870,7 +929,7 @@ export default function FloatingChat({ open, onClose, podcast }: FloatingChatPro
 
     const recognition = new Recognition();
     recognition.continuous = true;
-    recognition.interimResults = false;
+    recognition.interimResults = true;
     recognition.lang = podcast.targetLang === "zh" ? "zh-CN" : "en-US";
     recognition.onresult = (event) => {
       if (recognitionRef.current !== recognition) {
@@ -880,8 +939,23 @@ export default function FloatingChat({ open, onClose, podcast }: FloatingChatPro
       const lastResult = event.results[event.results.length - 1];
       const transcript = lastResult?.[0]?.transcript?.trim() ?? "";
 
-      if (transcript && lastResult?.isFinal !== false) {
-        void submitMessage(transcript);
+      if (!transcript || matchesCurrentReplyTranscript(transcript, activeReplySpeechTextRef.current)) {
+        return;
+      }
+
+      setVoiceError(null);
+
+      if (
+        audioPendingRef.current ||
+        audioPlayingRef.current ||
+        Boolean(pendingWelcomeRef.current) ||
+        sendingRef.current
+      ) {
+        interruptConversationTurn();
+      }
+
+      if (lastResult?.isFinal !== false) {
+        void submitMessage(transcript, { allowInterruptDuringGeneration: true });
       }
     };
     recognition.onerror = (event) => {
@@ -897,12 +971,7 @@ export default function FloatingChat({ open, onClose, podcast }: FloatingChatPro
       setVoiceError(event.error ?? t("chat.error.voiceInput"));
     };
     recognition.onend = () => {
-      if (
-        recognitionRef.current === recognition &&
-        open &&
-        !voiceSessionBusy &&
-        groupVoiceReadyForConversation
-      ) {
+      if (recognitionRef.current === recognition && open && groupVoiceReadyForConversation) {
         try {
           recognition.start();
         } catch {
@@ -925,7 +994,7 @@ export default function FloatingChat({ open, onClose, podcast }: FloatingChatPro
     return () => {
       stopRecognition(recognition);
     };
-  }, [groupVoiceReadyForConversation, open, podcast.targetLang, stopRecognition, submitMessage, t, voiceSessionBusy]);
+  }, [groupVoiceReadyForConversation, interruptConversationTurn, open, podcast.targetLang, stopRecognition, submitMessage, t]);
 
   const startNewSession = useCallback(() => {
     stopAudioPlayback();

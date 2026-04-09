@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   buildChatGreeting,
   buildChatWelcomeMessage,
@@ -349,5 +349,55 @@ describe("group chat helpers", () => {
       senderName: "Guest",
       text: buildGroupChatGreeting(podcast),
     });
+  });
+
+  it("randomly picks a single top-share speaker when the leading share is tied", () => {
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0.75);
+    const podcast: Podcast = {
+      ...buildReadyPodcast(),
+      type: "multi",
+      detectedSpeakerCount: 2,
+      aiHostSpeakerId: "speaker-1",
+      speakers: [
+        { id: "speaker-1", name: "Host", pct: 50, preview: "Welcome back", duration: "00:10" },
+        { id: "speaker-2", name: "Guest", pct: 50, preview: "Key point", duration: "00:08" },
+      ],
+      speakerProfiles: [
+        {
+          speakerId: "speaker-1",
+          displayName: "Host",
+          handle: "@host",
+          positioning: "Host profile",
+          perspective: "Host view",
+          speakingStyle: "Host style",
+          grounding: ["Welcome back"],
+          groupVoiceId: null,
+          groupVoiceName: null,
+          groupVoiceStatus: "idle",
+          groupVoiceError: null,
+        },
+        {
+          speakerId: "speaker-2",
+          displayName: "Guest",
+          handle: "@guest",
+          positioning: "Guest profile",
+          perspective: "Guest view",
+          speakingStyle: "Guest style",
+          grounding: ["Key point"],
+          groupVoiceId: null,
+          groupVoiceName: null,
+          groupVoiceStatus: "idle",
+          groupVoiceError: null,
+        },
+      ],
+    };
+
+    expect(buildChatWelcomeMessage(podcast, "group")).toMatchObject({
+      senderId: "speaker-2",
+      senderName: "Guest",
+      text: buildGroupChatGreeting(podcast),
+    });
+
+    randomSpy.mockRestore();
   });
 });

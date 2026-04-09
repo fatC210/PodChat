@@ -1,10 +1,11 @@
 import type {
   IntegrationSettings,
   Podcast,
+  SpeakerSample,
   SpeakerProfile,
   SummaryEmotion,
 } from "@/lib/podchat-data";
-import { getDominantSpeakerId, supportsGroupChat } from "@/lib/podchat-data";
+import { supportsGroupChat } from "@/lib/podchat-data";
 
 export type ChatRole = "user" | "ai";
 export type ChatMode = "personal" | "group";
@@ -353,11 +354,38 @@ export function buildGroupChatGreeting(podcast: Podcast, locale?: ChatCopyLocale
     : "The group chat is live. You can mention someone directly or use @all.";
 }
 
+function getRandomTopShareSpeakerId(speakers: SpeakerSample[]) {
+  let topShare = Number.NEGATIVE_INFINITY;
+  let candidates: SpeakerSample[] = [];
+
+  for (const speaker of speakers) {
+    if (speaker.pct > topShare) {
+      topShare = speaker.pct;
+      candidates = [speaker];
+      continue;
+    }
+
+    if (speaker.pct === topShare) {
+      candidates.push(speaker);
+    }
+  }
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  if (candidates.length === 1) {
+    return candidates[0]?.id ?? null;
+  }
+
+  return candidates[Math.floor(Math.random() * candidates.length)]?.id ?? null;
+}
+
 export function buildChatWelcomeMessage(podcast: Podcast, mode: ChatMode, locale?: ChatCopyLocale): ChatWelcomeMessage {
   const copyLocale = resolveChatCopyLocale(podcast, locale);
 
   if (mode === "group" && supportsGroupChat(podcast)) {
-    const dominantSpeakerId = getDominantSpeakerId(podcast.speakers);
+    const dominantSpeakerId = getRandomTopShareSpeakerId(podcast.speakers);
     const speakerProfiles = getSpeakerProfilesForChat(podcast);
     const dominantProfile = dominantSpeakerId
       ? speakerProfiles.find((profile) => profile.speakerId === dominantSpeakerId) ?? null
