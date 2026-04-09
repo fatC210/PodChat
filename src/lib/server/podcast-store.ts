@@ -11,6 +11,7 @@ import {
   type Podcast,
   type SavePodcastInput,
 } from "@/lib/podchat-data";
+import { getPodChatDataDir, preparePodChatDataDir } from "@/lib/server/podchat-data-dir";
 import { normalizeDisplayDuration } from "@/lib/transcript-duration";
 
 interface StoredPodcast extends Podcast {
@@ -25,7 +26,7 @@ interface StoreRuntime {
   writeChain: Promise<void>;
 }
 
-const dataDir = path.join(process.cwd(), ".podchat");
+const dataDir = getPodChatDataDir();
 const uploadsDir = path.join(dataDir, "uploads");
 const databasePath = path.join(dataDir, "podcasts.json");
 const initialDatabase: PodcastDatabase = {
@@ -71,6 +72,7 @@ function getStoreRuntime() {
 }
 
 async function ensureStoreFiles() {
+  await preparePodChatDataDir();
   await mkdir(uploadsDir, { recursive: true });
 
   try {

@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { NextResponse } from "next/server";
 import { getSummary, isPodcastReady, normalizeSummaryEmotion, summaryDurations } from "@/lib/podchat-data";
 import { getStoredPodcast } from "@/lib/server/podcast-store";
-import { readStoredIntegrationSettings } from "@/lib/server/settings-store";
+import { readRequestIntegrationSettings } from "@/lib/server/request-integration-settings";
 import { synthesizePodcastAudioWithRecovery } from "@/lib/server/podcast-audio";
 import { ensureSummaryTranslation } from "@/lib/server/summary-translations";
 
@@ -35,7 +35,7 @@ export async function GET(
       return NextResponse.json({ error: "Summary not found." }, { status: 404 });
     }
 
-    const settings = await readStoredIntegrationSettings();
+    const settings = readRequestIntegrationSettings(request);
     const targetLang = url.searchParams.get("lang")?.trim() ?? "";
     const requestedEmotion = url.searchParams.get("emotion");
     const normalizedEmotion = normalizeSummaryEmotion(requestedEmotion);

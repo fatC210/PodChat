@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSummary, isPodcastReady, summaryDurations } from "@/lib/podchat-data";
 import { ensureSummaryTranslation } from "@/lib/server/summary-translations";
 import { getStoredPodcast } from "@/lib/server/podcast-store";
-import { readStoredIntegrationSettings } from "@/lib/server/settings-store";
+import { readRequestIntegrationSettings } from "@/lib/server/request-integration-settings";
 
 export async function POST(
   request: Request,
@@ -35,7 +35,7 @@ export async function POST(
       return NextResponse.json({ error: "Summary not found." }, { status: 404 });
     }
 
-    const settings = await readStoredIntegrationSettings();
+    const settings = readRequestIntegrationSettings(request);
     const result = await ensureSummaryTranslation({
       podcast,
       duration,

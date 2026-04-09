@@ -1,15 +1,21 @@
 import "server-only";
 
 import { setTimeout as delay } from "node:timers/promises";
-import { isPodcastReady, resetPodcastForProcessing, type Podcast } from "@/lib/podchat-data";
+import {
+  isPodcastReady,
+  normalizeIntegrationSettings,
+  resetPodcastForProcessing,
+  type IntegrationSettings,
+  type Podcast,
+} from "@/lib/podchat-data";
 import { generateLivePodcastOutput } from "@/lib/server/live-podcast-processing";
 import { deletePodcastVoices } from "@/lib/server/podcast-voices";
 import { getStoredPodcastAsset, listStoredPodcasts, updateStoredPodcast } from "@/lib/server/podcast-store";
-import { readStoredIntegrationSettings } from "@/lib/server/settings-store";
 import { clonePodcastSpeakerVoice } from "@/lib/server/voice-cloning";
 
 interface ProcessorRuntime {
   activePodcastIds: Set<string>;
+  integrationSettingsByPodcastId: Map<string, IntegrationSettings>;
   resumedPendingPodcasts: boolean;
 }
 
@@ -21,6 +27,7 @@ function getProcessorRuntime() {
   if (!scopedGlobal.__podchatProcessorRuntime) {
     scopedGlobal.__podchatProcessorRuntime = {
       activePodcastIds: new Set<string>(),
+      integrationSettingsByPodcastId: new Map<string, IntegrationSettings>(),
       resumedPendingPodcasts: false,
     };
   }
@@ -36,6 +43,14 @@ async function applyProcessingPatch(
     ...podcast,
     ...patch,
   }));
+}
+
+export function setPodcastProcessingIntegrationSettings(
+  podcastId: string,
+  settings: IntegrationSettings,
+) {
+  const runtime = getProcessorRuntime();
+  runtime.integrationSettingsByPodcastId.set(podcastId, normalizeIntegrationSettings(settings));
 }
 
 async function clonePodcastSpeakerVoiceSafely(input: Parameters<typeof clonePodcastSpeakerVoice>[0]) {
@@ -60,6 +75,12 @@ async function processPodcast(podcastId: string) {
   runtime.activePodcastIds.add(podcastId);
 
   try {
+    const settings = runtime.integrationSettingsByPodcastId.get(podcastId);
+
+    if (!settings) {
+      throw new Error("Integration settings are only kept locally. Open the app and retry this podcast action.");
+    }
+
     await applyProcessingPatch(podcastId, {
       workflowStep: "queued",
       processingProgressPercent: 5,
@@ -83,7 +104,6 @@ async function processPodcast(podcastId: string) {
       throw new Error("Stored source file was not found.");
     }
 
-    const settings = await readStoredIntegrationSettings();
     const generatedContent = await generateLivePodcastOutput({
       podcast: transcribingState,
       uploadedFilePath: storedAsset.uploadedFilePath,
@@ -159,6 +179,7 @@ async function processPodcast(podcastId: string) {
     });
   } finally {
     runtime.activePodcastIds.delete(podcastId);
+    runtime.integrationSettingsByPodcastId.delete(podcastId);
   }
 }
 
@@ -166,7 +187,10 @@ export function enqueuePodcastProcessing(podcastId: string) {
   void processPodcast(podcastId);
 }
 
-export async function regeneratePodcastProcessing(podcastId: string) {
+export async function regeneratePodcastProcessing(
+  podcastId: string,
+  settings?: IntegrationSettings,
+) {
   const runtime = getProcessorRuntime();
 
   if (runtime.activePodcastIds.has(podcastId)) {
@@ -180,8 +204,9 @@ export async function regeneratePodcastProcessing(podcastId: string) {
   }
 
   try {
-    const settings = await readStoredIntegrationSettings();
-    await deletePodcastVoices(settings, storedAsset.podcast);
+    if (settings) {
+      await deletePodcastVoices(settings, storedAsset.podcast);
+    }
   } catch {
     void 0;
   }
@@ -192,15 +217,25 @@ export async function regeneratePodcastProcessing(podcastId: string) {
     return null;
   }
 
+  if (settings) {
+    setPodcastProcessingIntegrationSettings(podcastId, settings);
+  }
+
   enqueuePodcastProcessing(podcastId);
   return podcast;
 }
 
 export async function enqueueConfiguringPodcasts() {
   const podcasts = await listStoredPodcasts();
+  const runtime = getProcessorRuntime();
 
   podcasts
-    .filter((podcast) => podcast.status === "configuring" && !isPodcastReady(podcast))
+    .filter(
+      (podcast) =>
+        podcast.status === "configuring" &&
+        !isPodcastReady(podcast) &&
+        runtime.integrationSettingsByPodcastId.has(podcast.id),
+    )
     .forEach((podcast) => {
       enqueuePodcastProcessing(podcast.id);
     });

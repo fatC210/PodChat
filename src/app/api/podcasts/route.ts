@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { createStoredPodcast, listStoredPodcasts } from "@/lib/server/podcast-store";
-import { enqueuePodcastProcessing, resumePendingPodcastProcessing } from "@/lib/server/podcast-processing";
+import {
+  enqueuePodcastProcessing,
+  resumePendingPodcastProcessing,
+  setPodcastProcessingIntegrationSettings,
+} from "@/lib/server/podcast-processing";
 import type { PersonaLocale, PodcastType, SavePodcastInput } from "@/lib/podchat-data";
+import { readRequestIntegrationSettings } from "@/lib/server/request-integration-settings";
 
 function readTextField(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -60,6 +65,7 @@ export async function POST(request: Request) {
     };
 
     const podcast = await createStoredPodcast(input, file);
+    setPodcastProcessingIntegrationSettings(podcast.id, readRequestIntegrationSettings(request));
     enqueuePodcastProcessing(podcast.id);
 
     return NextResponse.json({ podcast }, { status: 201 });

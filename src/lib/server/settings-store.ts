@@ -8,12 +8,13 @@ import {
   normalizeIntegrationSettings,
   type IntegrationSettings,
 } from "@/lib/podchat-data";
+import { getPodChatDataDir, preparePodChatDataDir } from "@/lib/server/podchat-data-dir";
 
 interface SettingsRuntime {
   writeChain: Promise<void>;
 }
 
-const dataDir = path.join(process.cwd(), ".podchat");
+const dataDir = getPodChatDataDir();
 const settingsPath = path.join(dataDir, "settings.json");
 
 function getSettingsRuntime() {
@@ -31,6 +32,7 @@ function getSettingsRuntime() {
 }
 
 async function ensureSettingsFile() {
+  await preparePodChatDataDir();
   await mkdir(dataDir, { recursive: true });
 
   try {

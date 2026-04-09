@@ -2,7 +2,6 @@ import "server-only";
 
 import { normalizeIntegrationSettings, type IntegrationSettings } from "@/lib/podchat-data";
 import { fetchWithUpstreamErrorContext, normalizeValue, readUpstreamError } from "@/lib/server/integrations";
-import { readStoredIntegrationSettings, writeStoredIntegrationSettings } from "@/lib/server/settings-store";
 
 const requiredConversationOverrides = {
   agent: {
@@ -39,14 +38,12 @@ function shouldRecreateStoredAgent(detail: string) {
   );
 }
 
-async function createAndStoreBaseAgent(settings: IntegrationSettings) {
+async function createAndAttachBaseAgent(settings: IntegrationSettings) {
   const agentId = await createBaseAgent(settings);
-  const nextSettings = await writeStoredIntegrationSettings(
-    normalizeIntegrationSettings({
-      ...settings,
-      elevenlabsAgentId: agentId,
-    }),
-  );
+  const nextSettings = normalizeIntegrationSettings({
+    ...settings,
+    elevenlabsAgentId: agentId,
+  });
 
   await ensureAgentOverridesEnabled(nextSettings, agentId);
   return nextSettings;
@@ -203,9 +200,7 @@ async function ensureAgentOverridesEnabled(
   }
 }
 
-export async function ensureStoredBaseAgent() {
-  const settings = await readStoredIntegrationSettings();
-
+export async function ensureBaseAgent(settings: IntegrationSettings) {
   if (!normalizeValue(settings.elevenlabs)) {
     throw new Error("ElevenLabs API key is required before starting an agent session.");
   }
@@ -223,30 +218,28 @@ export async function ensureStoredBaseAgent() {
     }
   }
 
-  return createAndStoreBaseAgent(settings);
+  return createAndAttachBaseAgent(settings);
 }
 
-export async function getStoredConversationToken() {
-  let settings = await ensureStoredBaseAgent();
+export async function getConversationToken(settings: IntegrationSettings) {
+  let nextSettings = await ensureBaseAgent(settings);
 
   try {
     return {
-      signedUrl: await requestSignedUrl(settings, settings.elevenlabsAgentId),
-      agentId: settings.elevenlabsAgentId,
+      signedUrl: await requestSignedUrl(nextSettings, nextSettings.elevenlabsAgentId),
+      agentId: nextSettings.elevenlabsAgentId,
     };
   } catch (error) {
     const detail = error instanceof Error ? error.message : "Unknown ElevenLabs token error.";
 
-    const agentId = await createBaseAgent(settings);
-    settings = await writeStoredIntegrationSettings(
-      normalizeIntegrationSettings({
-        ...settings,
-        elevenlabsAgentId: agentId,
-      }),
-    );
+    const agentId = await createBaseAgent(nextSettings);
+    nextSettings = normalizeIntegrationSettings({
+      ...nextSettings,
+      elevenlabsAgentId: agentId,
+    });
 
     return {
-      signedUrl: await requestSignedUrl(settings, agentId),
+      signedUrl: await requestSignedUrl(nextSettings, agentId),
       agentId,
       recreatedBecause: detail,
     };

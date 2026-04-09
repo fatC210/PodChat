@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { Play, Pause, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
-import { requestSummaryTranslation } from "@/lib/api";
+import { requestSummaryAudio, requestSummaryTranslation } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { useAppData } from "@/lib/app-data";
 import { useBackNavigation } from "@/lib/navigation";
@@ -48,8 +48,17 @@ export default function SummaryPage() {
   const durationRef = useRef<HTMLDivElement>(null);
   const modeRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const summaryAudioUrlRef = useRef<string | null>(null);
   const playRequestIdRef = useRef(0);
   const pendingPlayRef = useRef(false);
+  const [summaryAudioSrc, setSummaryAudioSrc] = useState<string | null>(null);
+
+  const revokeSummaryAudioUrl = useCallback(() => {
+    if (summaryAudioUrlRef.current) {
+      URL.revokeObjectURL(summaryAudioUrlRef.current);
+      summaryAudioUrlRef.current = null;
+    }
+  }, []);
 
   const resetAudioPlayback = () => {
     playRequestIdRef.current += 1;
@@ -98,8 +107,9 @@ export default function SummaryPage() {
       playRequestIdRef.current += 1;
       pendingPlayRef.current = false;
       audio?.pause();
+      revokeSummaryAudioUrl();
     };
-  }, []);
+  }, [revokeSummaryAudioUrl]);
 
   useEffect(() => {
     if (!podcast) {
@@ -204,22 +214,45 @@ export default function SummaryPage() {
     summaryMode === "translated"
       ? translationText ?? summary?.text ?? ""
       : summary?.text ?? "";
-  const summaryAudioSrc = useMemo(() => {
+  useEffect(() => {
+    revokeSummaryAudioUrl();
+    setSummaryAudioSrc(null);
+
     if (!podcast || !summary || !duration) {
-      return null;
+      return;
     }
 
-    const params = new URLSearchParams({
-      dur: String(duration),
-      emotion: summary.emotion,
-    });
+    let cancelled = false;
 
-    if (summaryMode === "translated") {
-      params.set("lang", targetLang);
-    }
+    void requestSummaryAudio(
+      podcast.id,
+      duration,
+      summary.emotion,
+      summaryMode === "translated" ? targetLang : undefined,
+    )
+      .then((blob) => {
+        if (cancelled) {
+          return;
+        }
 
-    return `/api/podcasts/${podcast.id}/summary-audio?${params.toString()}`;
-  }, [duration, podcast, summary, summaryMode, targetLang]);
+        const nextUrl = URL.createObjectURL(blob);
+        summaryAudioUrlRef.current = nextUrl;
+        setSummaryAudioSrc(nextUrl);
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+
+        const message = error instanceof Error ? error.message : "ElevenLabs summary audio is unavailable.";
+        setAudioError(message);
+      });
+
+    return () => {
+      cancelled = true;
+      revokeSummaryAudioUrl();
+    };
+  }, [duration, podcast, revokeSummaryAudioUrl, summary, summaryMode, targetLang]);
   const selectedLangLabel = targetLangs.find((lang) => lang.code === targetLang)?.label ?? targetLang.toUpperCase();
   const selectedModeLabel =
     summaryMode === "translated"

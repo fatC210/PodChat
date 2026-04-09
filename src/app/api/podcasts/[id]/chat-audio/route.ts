@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { NextResponse } from "next/server";
 import { normalizeSummaryEmotion } from "@/lib/podchat-data";
 import { getStoredPodcast } from "@/lib/server/podcast-store";
-import { readStoredIntegrationSettings } from "@/lib/server/settings-store";
+import { readRequestIntegrationSettings } from "@/lib/server/request-integration-settings";
 import { synthesizePodcastAudioWithRecovery } from "@/lib/server/podcast-audio";
 
 export async function POST(
@@ -47,7 +47,7 @@ export async function POST(
     const speakerProfile = body.speakerId
       ? podcast.speakerProfiles.find((profile) => profile.speakerId === body.speakerId)
       : null;
-    const settings = await readStoredIntegrationSettings();
+    const settings = readRequestIntegrationSettings(request);
     const voiceIdOverride = speakerProfile?.groupVoiceId ?? podcast.aiHostVoiceId;
     const synthesis = await synthesizePodcastAudioWithRecovery({
       settings,

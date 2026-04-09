@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { readStoredIntegrationSettings } from "@/lib/server/settings-store";
 import { transcribeAudioWithElevenLabs } from "@/lib/server/elevenlabs";
+import { readRequestIntegrationSettings } from "@/lib/server/request-integration-settings";
 
 export async function POST(request: Request) {
   try {
@@ -11,7 +11,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Audio file is required." }, { status: 400 });
     }
 
-    const settings = await readStoredIntegrationSettings();
+    const settings = readRequestIntegrationSettings(request);
     const transcription = await transcribeAudioWithElevenLabs(settings, {
       fileName: file.name || "speech.webm",
       fileBytes: Buffer.from(await file.arrayBuffer()),

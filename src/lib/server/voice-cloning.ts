@@ -7,9 +7,10 @@ import { spawn } from "node:child_process";
 import { timeToSeconds, type IntegrationSettings, type Podcast, type TranscriptLine } from "@/lib/podchat-data";
 import { hasElevenLabsConfig } from "@/lib/server/elevenlabs";
 import { fetchWithUpstreamErrorContext, readUpstreamError } from "@/lib/server/integrations";
+import { getPodChatDataDir, preparePodChatDataDir } from "@/lib/server/podchat-data-dir";
 import { collectPodcastVoiceIds, ensurePodChatVoiceCapacity } from "@/lib/server/podcast-voices";
 
-const tempRootDir = path.join(/* turbopackIgnore: true */ process.cwd(), ".podchat", "tmp");
+const tempRootDir = path.join(/* turbopackIgnore: true */ getPodChatDataDir(), "tmp");
 
 function runFfmpeg(args: string[]) {
   return new Promise<void>((resolve, reject) => {
@@ -107,6 +108,7 @@ export async function preparePodcastSpeakerSampleAudio(input: {
     throw new Error("No transcript segments were found for the selected speaker.");
   }
 
+  await preparePodChatDataDir();
   const tempDir = path.join(tempRootDir, randomUUID());
   await mkdir(tempDir, { recursive: true });
 

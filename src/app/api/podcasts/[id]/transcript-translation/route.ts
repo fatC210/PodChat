@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { ensureTranscriptTranslation } from "@/lib/server/transcript-translations";
 import { getStoredPodcast } from "@/lib/server/podcast-store";
-import { readStoredIntegrationSettings } from "@/lib/server/settings-store";
+import { readRequestIntegrationSettings } from "@/lib/server/request-integration-settings";
 
 export async function POST(
   request: Request,
@@ -23,7 +23,7 @@ export async function POST(
       targetLang?: string;
     };
     const targetLang = body.targetLang?.trim() ?? "";
-    const settings = await readStoredIntegrationSettings();
+    const settings = readRequestIntegrationSettings(request);
     const result = await ensureTranscriptTranslation({
       podcast,
       targetLang,

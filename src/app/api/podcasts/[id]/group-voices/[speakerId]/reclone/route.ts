@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { deleteElevenLabsVoice } from "@/lib/server/elevenlabs";
 import { getReusableGroupSpeakerVoice } from "@/lib/server/podcast-voices";
 import { getStoredPodcastAsset, updateStoredPodcast } from "@/lib/server/podcast-store";
-import { readStoredIntegrationSettings } from "@/lib/server/settings-store";
+import { readRequestIntegrationSettings } from "@/lib/server/request-integration-settings";
 import { clonePodcastSpeakerVoice } from "@/lib/server/voice-cloning";
 
 export async function POST(
@@ -31,7 +31,7 @@ export async function POST(
       return NextResponse.json({ error: "Speaker profile not found." }, { status: 404 });
     }
 
-    const settings = await readStoredIntegrationSettings();
+    const settings = readRequestIntegrationSettings(request);
     const reusableVoice = getReusableGroupSpeakerVoice(stored.podcast, speaker.id);
 
     if (reusableVoice) {

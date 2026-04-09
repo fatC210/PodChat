@@ -9,7 +9,6 @@ const {
   generateLivePodcastOutputMock,
   getStoredPodcastAssetMock,
   listStoredPodcastsMock,
-  readStoredIntegrationSettingsMock,
   updateStoredPodcastMock,
 } = vi.hoisted(() => ({
   clonePodcastSpeakerVoiceMock: vi.fn(),
@@ -17,7 +16,6 @@ const {
   generateLivePodcastOutputMock: vi.fn(),
   getStoredPodcastAssetMock: vi.fn(),
   listStoredPodcastsMock: vi.fn(),
-  readStoredIntegrationSettingsMock: vi.fn(),
   updateStoredPodcastMock: vi.fn(),
 }));
 
@@ -37,15 +35,14 @@ vi.mock("@/lib/server/podcast-store", () => ({
   updateStoredPodcast: updateStoredPodcastMock,
 }));
 
-vi.mock("@/lib/server/settings-store", () => ({
-  readStoredIntegrationSettings: readStoredIntegrationSettingsMock,
-}));
-
 vi.mock("@/lib/server/voice-cloning", () => ({
   clonePodcastSpeakerVoice: clonePodcastSpeakerVoiceMock,
 }));
 
-import { enqueuePodcastProcessing } from "@/lib/server/podcast-processing";
+import {
+  enqueuePodcastProcessing,
+  setPodcastProcessingIntegrationSettings,
+} from "@/lib/server/podcast-processing";
 
 describe("enqueuePodcastProcessing", () => {
   let currentPodcast: Podcast;
@@ -74,15 +71,6 @@ describe("enqueuePodcastProcessing", () => {
       sourceFileName: "episode.mp3",
     });
     listStoredPodcastsMock.mockResolvedValue([]);
-    readStoredIntegrationSettingsMock.mockResolvedValue({
-      elevenlabs: "test-elevenlabs-key",
-      elevenlabsVoiceId: "",
-      elevenlabsAgentId: "",
-      firecrawl: "test-firecrawl-key",
-      llmKey: "test-llm-key",
-      llmUrl: "https://example.com/v1",
-      llmModel: "test-model",
-    });
     updateStoredPodcastMock.mockImplementation(async (_id: string, updater: (podcast: Podcast) => Podcast) => {
       currentPodcast = updater(currentPodcast);
       return currentPodcast;
@@ -120,6 +108,15 @@ describe("enqueuePodcastProcessing", () => {
 
   it("marks the podcast ready even when voice cloning fails", async () => {
     clonePodcastSpeakerVoiceMock.mockRejectedValue(new Error("Failed to reach ElevenLabs voice cloning API."));
+    setPodcastProcessingIntegrationSettings(currentPodcast.id, {
+      elevenlabs: "test-elevenlabs-key",
+      elevenlabsVoiceId: "",
+      elevenlabsAgentId: "",
+      firecrawl: "test-firecrawl-key",
+      llmKey: "test-llm-key",
+      llmUrl: "https://example.com/v1",
+      llmModel: "test-model",
+    });
 
     enqueuePodcastProcessing(currentPodcast.id);
 

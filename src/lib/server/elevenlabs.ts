@@ -5,6 +5,7 @@ import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { detectDominantMessageLanguage } from "@/lib/chat";
 import { formatDurationLabel, type IntegrationSettings, type SummaryEmotion } from "@/lib/podchat-data";
+import { getPodChatDataDir, preparePodChatDataDir } from "@/lib/server/podchat-data-dir";
 import { resolveTranscriptionDurationSeconds } from "@/lib/transcript-duration";
 import { fetchWithUpstreamErrorContext, normalizeValue, readUpstreamError } from "@/lib/server/integrations";
 import { resolveElevenLabsTranscriptionRequestOptions } from "@/lib/server/elevenlabs-transcription";
@@ -51,7 +52,7 @@ export interface ElevenLabsSpeakerSample {
   duration: string;
 }
 
-const dataDir = path.join(process.cwd(), ".podchat");
+const dataDir = getPodChatDataDir();
 const generatedDir = path.join(dataDir, "generated");
 const speakerColors = ["text-accent", "text-info", "text-warning", "text-success"];
 
@@ -417,6 +418,7 @@ export async function synthesizeTextWithElevenLabs(
     void 0;
   }
 
+  await preparePodChatDataDir();
   await mkdir(generatedDir, { recursive: true });
 
   const response = await fetchWithUpstreamErrorContext("ElevenLabs text-to-speech API", `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {

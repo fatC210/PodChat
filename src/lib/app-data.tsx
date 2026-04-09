@@ -5,11 +5,10 @@ import {
   createPodcast as createPodcastRequest,
   deletePodcast as deletePodcastRequest,
   fetchPodcasts as fetchPodcastsRequest,
-  fetchIntegrationSettings as fetchIntegrationSettingsRequest,
   patchPodcast as patchPodcastRequest,
   regeneratePodcast as regeneratePodcastRequest,
-  saveIntegrationSettings as saveIntegrationSettingsRequest,
 } from "@/lib/api";
+import { clientStateStorageKey, legacyStorageKey } from "@/lib/integration-settings-storage";
 import {
   applyClientPodcastState,
   clientPodcastStateFields,
@@ -24,9 +23,6 @@ import {
   type Podcast,
   type SavePodcastInput,
 } from "@/lib/podchat-data";
-
-const clientStateStorageKey = "podchat_client_state_v3";
-const legacyStorageKey = "podchat_app_data_v2";
 
 const clientPodcastStateFieldSet = new Set<string>(clientPodcastStateFields);
 const serverEditableFieldSet = new Set<string>([
@@ -197,13 +193,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
     const bootstrap = async () => {
       try {
-        const [{ podcasts: nextPodcasts }, { settings }] = await Promise.all([
-          fetchPodcastsRequest(),
-          fetchIntegrationSettingsRequest(),
-        ]);
+        const { podcasts: nextPodcasts } = await fetchPodcastsRequest();
 
         if (!cancelled) {
-          setIntegrationSettings(settings);
           mergePodcasts(nextPodcasts);
         }
       } catch (error) {
@@ -413,24 +405,17 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const saveIntegrationSettings = useCallback(async (settings: IntegrationSettings) => {
     const normalized = normalizeIntegrationSettings(settings);
     const elevenLabsKeyChanged = integrationSettings.elevenlabs.trim() !== normalized.elevenlabs.trim();
-    setIntegrationSettings(normalized);
+    setIntegrationSettings(
+      elevenLabsKeyChanged
+        ? {
+            ...normalized,
+            elevenlabsAgentId: "",
+          }
+        : normalized,
+    );
 
-    try {
-      const response = await saveIntegrationSettingsRequest(normalized);
-      setIntegrationSettings(response.settings);
-      if (elevenLabsKeyChanged) {
-        await reloadPodcasts();
-      }
-    } catch (error) {
-      void fetchIntegrationSettingsRequest()
-        .then(({ settings: storedSettings }) => {
-          setIntegrationSettings(storedSettings);
-        })
-        .catch((reloadError) => {
-          console.error("Failed to reload integration settings after a save error.", reloadError);
-        });
-
-      throw error;
+    if (elevenLabsKeyChanged) {
+      await reloadPodcasts();
     }
   }, [integrationSettings.elevenlabs, reloadPodcasts]);
 

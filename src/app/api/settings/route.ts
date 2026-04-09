@@ -1,15 +1,12 @@
 import { NextResponse } from "next/server";
-import { normalizeIntegrationSettings, type IntegrationSettings } from "@/lib/podchat-data";
-import { enqueueConfiguringPodcasts } from "@/lib/server/podcast-processing";
-import { resetStoredPodcastVoicesForElevenLabsKeyChange } from "@/lib/server/podcast-voice-reset";
 import {
-  readStoredIntegrationSettings,
-  writeStoredIntegrationSettings,
-} from "@/lib/server/settings-store";
+  defaultIntegrationSettings,
+  normalizeIntegrationSettings,
+  type IntegrationSettings,
+} from "@/lib/podchat-data";
 
 export async function GET() {
-  const settings = await readStoredIntegrationSettings();
-  return NextResponse.json({ settings });
+  return NextResponse.json({ settings: defaultIntegrationSettings });
 }
 
 export async function PATCH(request: Request) {
@@ -22,24 +19,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Invalid settings payload." }, { status: 400 });
     }
 
-    const currentSettings = await readStoredIntegrationSettings();
-    const nextSettings = normalizeIntegrationSettings(body.settings);
-    const elevenLabsKeyChanged = currentSettings.elevenlabs.trim() !== nextSettings.elevenlabs.trim();
-    const settings = await writeStoredIntegrationSettings(
-      elevenLabsKeyChanged
-        ? {
-            ...nextSettings,
-            elevenlabsAgentId: "",
-          }
-        : nextSettings,
-    );
-
-    if (elevenLabsKeyChanged) {
-      await resetStoredPodcastVoicesForElevenLabsKeyChange();
-    }
-
-    await enqueueConfiguringPodcasts();
-    return NextResponse.json({ settings });
+    return NextResponse.json({ settings: normalizeIntegrationSettings(body.settings) });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to save settings.";
     return NextResponse.json({ error: message }, { status: 400 });

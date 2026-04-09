@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
-import { getStoredConversationToken } from "@/lib/server/elevenlabs-agents";
+import { normalizeIntegrationSettings, type IntegrationSettings } from "@/lib/podchat-data";
+import { getConversationToken } from "@/lib/server/elevenlabs-agents";
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
-    const result = await getStoredConversationToken();
+    const body = (await request.json()) as {
+      settings?: Partial<IntegrationSettings>;
+    };
+    const result = await getConversationToken(normalizeIntegrationSettings(body.settings));
     return NextResponse.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to start ElevenLabs agent session.";

@@ -2,33 +2,13 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { readStoredIntegrationSettingsMock, writeStoredIntegrationSettingsMock } = vi.hoisted(() => ({
-  readStoredIntegrationSettingsMock: vi.fn(),
-  writeStoredIntegrationSettingsMock: vi.fn(),
-}));
-
 vi.mock("server-only", () => ({}));
 
-vi.mock("@/lib/server/settings-store", () => ({
-  readStoredIntegrationSettings: readStoredIntegrationSettingsMock,
-  writeStoredIntegrationSettings: writeStoredIntegrationSettingsMock,
-}));
+import { ensureBaseAgent } from "@/lib/server/elevenlabs-agents";
 
-import { ensureStoredBaseAgent } from "@/lib/server/elevenlabs-agents";
-
-describe("ensureStoredBaseAgent", () => {
+describe("ensureBaseAgent", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    readStoredIntegrationSettingsMock.mockResolvedValue({
-      elevenlabs: "new-key",
-      elevenlabsVoiceId: "",
-      elevenlabsAgentId: "stale-agent",
-      firecrawl: "",
-      llmKey: "",
-      llmUrl: "",
-      llmModel: "",
-    });
-    writeStoredIntegrationSettingsMock.mockImplementation(async (settings) => settings);
   });
 
   it("recreates the stored base agent when the saved agent belongs to a different account", async () => {
@@ -86,14 +66,17 @@ describe("ensureStoredBaseAgent", () => {
         ),
       );
 
-    const result = await ensureStoredBaseAgent();
+    const result = await ensureBaseAgent({
+      elevenlabs: "new-key",
+      elevenlabsVoiceId: "",
+      elevenlabsAgentId: "stale-agent",
+      firecrawl: "",
+      llmKey: "",
+      llmUrl: "",
+      llmModel: "",
+    });
 
     expect(result.elevenlabsAgentId).toBe("agent_fresh");
-    expect(writeStoredIntegrationSettingsMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        elevenlabsAgentId: "agent_fresh",
-      }),
-    );
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 });

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getStoredPodcastAsset, updateStoredPodcast } from "@/lib/server/podcast-store";
-import { ensureStoredBaseAgent } from "@/lib/server/elevenlabs-agents";
+import { ensureBaseAgent } from "@/lib/server/elevenlabs-agents";
 import { deleteElevenLabsVoice } from "@/lib/server/elevenlabs";
-import { readStoredIntegrationSettings } from "@/lib/server/settings-store";
+import { readRequestIntegrationSettings } from "@/lib/server/request-integration-settings";
 import { clonePodcastSpeakerVoice } from "@/lib/server/voice-cloning";
 
 export async function POST(
@@ -31,7 +31,7 @@ export async function POST(
       return NextResponse.json({ error: "Selected speaker was not found." }, { status: 404 });
     }
 
-    const settings = await readStoredIntegrationSettings();
+    const settings = readRequestIntegrationSettings(request);
     const previousVoiceId = stored.podcast.aiHostVoiceId;
     const clonedVoice = await clonePodcastSpeakerVoice({
       settings,
@@ -50,7 +50,7 @@ export async function POST(
     }
 
     try {
-      await ensureStoredBaseAgent();
+      await ensureBaseAgent(settings);
     } catch {
       void 0;
     }

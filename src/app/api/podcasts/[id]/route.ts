@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { buildPersonaFromWizardInput, type Podcast } from "@/lib/podchat-data";
 import { deletePodcastVoices } from "@/lib/server/podcast-voices";
-import { enqueuePodcastProcessing } from "@/lib/server/podcast-processing";
-import { readStoredIntegrationSettings } from "@/lib/server/settings-store";
+import {
+  enqueuePodcastProcessing,
+  setPodcastProcessingIntegrationSettings,
+} from "@/lib/server/podcast-processing";
 import { deleteStoredPodcast, getStoredPodcast, patchStoredPodcast } from "@/lib/server/podcast-store";
+import { readRequestIntegrationSettings } from "@/lib/server/request-integration-settings";
 
 const editableFields = new Set<keyof Podcast>([
   "title",
@@ -100,6 +103,7 @@ export async function PATCH(
     }
 
     if (podcast.status === "configuring" && shouldEnqueueProcessing) {
+      setPodcastProcessingIntegrationSettings(podcast.id, readRequestIntegrationSettings(request));
       enqueuePodcastProcessing(podcast.id);
     }
 
@@ -124,7 +128,7 @@ export async function DELETE(
   }
 
   try {
-    const settings = await readStoredIntegrationSettings();
+    const settings = readRequestIntegrationSettings(request);
     await deletePodcastVoices(settings, existingPodcast);
   } catch {
     void 0;

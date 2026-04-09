@@ -5,6 +5,11 @@ import type {
   IntegrationTestRequestBody,
   IntegrationTestResponseBody,
 } from "@/lib/chat";
+import { integrationSettingsHeaderName } from "@/lib/integration-settings-header";
+import {
+  readStoredIntegrationSettingsFromLocalStorage,
+  writeStoredIntegrationSettingsToLocalStorage,
+} from "@/lib/integration-settings-storage";
 import type { IntegrationSettings, Podcast, SavePodcastInput } from "@/lib/podchat-data";
 
 export interface AgentSessionResponse {
@@ -30,13 +35,28 @@ async function readErrorMessage(response: Response) {
   return `Request failed with status ${response.status}`;
 }
 
+function withIntegrationSettingsHeaders(headers?: HeadersInit) {
+  const nextHeaders = new Headers(headers);
+  const settings = readStoredIntegrationSettingsFromLocalStorage();
+  nextHeaders.set(integrationSettingsHeaderName, encodeURIComponent(JSON.stringify(settings)));
+  return nextHeaders;
+}
+
 export async function requestChatReply(payload: ChatRequestBody) {
+  const integrationSettings = readStoredIntegrationSettingsFromLocalStorage();
   const response = await fetch("/api/chat", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      ...payload,
+      integrationSettings: {
+        llmKey: integrationSettings.llmKey,
+        llmUrl: integrationSettings.llmUrl,
+        llmModel: integrationSettings.llmModel,
+      },
+    }),
   });
 
   if (!response.ok) {
@@ -47,33 +67,16 @@ export async function requestChatReply(payload: ChatRequestBody) {
 }
 
 export async function fetchIntegrationSettings() {
-  const response = await fetch("/api/settings", {
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error(await readErrorMessage(response));
-  }
-
-  return (await response.json()) as { settings: IntegrationSettings };
+  return {
+    settings: readStoredIntegrationSettingsFromLocalStorage(),
+  };
 }
 
 export async function saveIntegrationSettings(payload: IntegrationSettings) {
-  const response = await fetch("/api/settings", {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      settings: payload,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(await readErrorMessage(response));
-  }
-
-  return (await response.json()) as { settings: IntegrationSettings };
+  writeStoredIntegrationSettingsToLocalStorage(payload);
+  return {
+    settings: payload,
+  };
 }
 
 export async function testIntegrationConnection(payload: IntegrationTestRequestBody) {
@@ -120,6 +123,7 @@ export async function createPodcast(input: SavePodcastInput, file: File) {
 
   const response = await fetch("/api/podcasts", {
     method: "POST",
+    headers: withIntegrationSettingsHeaders(),
     body: formData,
   });
 
@@ -145,9 +149,9 @@ export async function patchPodcast(
 ) {
   const response = await fetch(`/api/podcasts/${id}`, {
     method: "PATCH",
-    headers: {
+    headers: withIntegrationSettingsHeaders({
       "Content-Type": "application/json",
-    },
+    }),
     body: JSON.stringify(payload),
   });
 
@@ -161,6 +165,7 @@ export async function patchPodcast(
 export async function regeneratePodcast(id: string) {
   const response = await fetch(`/api/podcasts/${id}/regenerate`, {
     method: "POST",
+    headers: withIntegrationSettingsHeaders(),
   });
 
   if (!response.ok) {
@@ -173,6 +178,7 @@ export async function regeneratePodcast(id: string) {
 export async function deletePodcast(id: string) {
   const response = await fetch(`/api/podcasts/${id}`, {
     method: "DELETE",
+    headers: withIntegrationSettingsHeaders(),
   });
 
   if (!response.ok) {
@@ -188,6 +194,7 @@ export async function transcribeSpeech(file: Blob, fileName = "speech.webm") {
 
   const response = await fetch("/api/speech-to-text", {
     method: "POST",
+    headers: withIntegrationSettingsHeaders(),
     body: formData,
   });
 
@@ -207,9 +214,9 @@ export async function requestChatSpeech(
 ) {
   const response = await fetch(`/api/podcasts/${podcastId}/chat-audio`, {
     method: "POST",
-    headers: {
+    headers: withIntegrationSettingsHeaders({
       "Content-Type": "application/json",
-    },
+    }),
     body: JSON.stringify({
       text,
       ...(speakerId ? { speakerId } : {}),
@@ -228,9 +235,9 @@ export async function requestChatSpeech(
 export async function cloneHostVoice(podcastId: string, speakerId: string) {
   const response = await fetch(`/api/podcasts/${podcastId}/host-voice`, {
     method: "POST",
-    headers: {
+    headers: withIntegrationSettingsHeaders({
       "Content-Type": "application/json",
-    },
+    }),
     body: JSON.stringify({ speakerId }),
   });
 
@@ -244,6 +251,7 @@ export async function cloneHostVoice(podcastId: string, speakerId: string) {
 export async function prepareGroupVoices(podcastId: string) {
   const response = await fetch(`/api/podcasts/${podcastId}/group-voices/prepare`, {
     method: "POST",
+    headers: withIntegrationSettingsHeaders(),
   });
 
   if (!response.ok) {
@@ -256,6 +264,7 @@ export async function prepareGroupVoices(podcastId: string) {
 export async function recloneGroupVoice(podcastId: string, speakerId: string) {
   const response = await fetch(`/api/podcasts/${podcastId}/group-voices/${speakerId}/reclone`, {
     method: "POST",
+    headers: withIntegrationSettingsHeaders(),
   });
 
   if (!response.ok) {
@@ -272,9 +281,9 @@ export async function requestSummaryTranslation(
 ) {
   const response = await fetch(`/api/podcasts/${podcastId}/summary-translation`, {
     method: "POST",
-    headers: {
+    headers: withIntegrationSettingsHeaders({
       "Content-Type": "application/json",
-    },
+    }),
     body: JSON.stringify({
       duration,
       targetLang,
@@ -297,9 +306,9 @@ export async function requestTranscriptTranslation(
 ) {
   const response = await fetch(`/api/podcasts/${podcastId}/transcript-translation`, {
     method: "POST",
-    headers: {
+    headers: withIntegrationSettingsHeaders({
       "Content-Type": "application/json",
-    },
+    }),
     body: JSON.stringify({
       targetLang,
     }),
@@ -315,14 +324,56 @@ export async function requestTranscriptTranslation(
   };
 }
 
-export async function startAgentSession() {
-  const response = await fetch("/api/agent/session", {
-    method: "POST",
+export async function requestSummaryAudio(
+  podcastId: string,
+  duration: number,
+  emotion: string,
+  targetLang?: string,
+) {
+  const params = new URLSearchParams({
+    dur: String(duration),
+    emotion,
+  });
+
+  if (targetLang) {
+    params.set("lang", targetLang);
+  }
+
+  const response = await fetch(`/api/podcasts/${podcastId}/summary-audio?${params.toString()}`, {
+    headers: withIntegrationSettingsHeaders(),
   });
 
   if (!response.ok) {
     throw new Error(await readErrorMessage(response));
   }
 
-  return (await response.json()) as AgentSessionResponse;
+  return await response.blob();
+}
+
+export async function startAgentSession() {
+  const response = await fetch("/api/agent/session", {
+    method: "POST",
+    headers: withIntegrationSettingsHeaders({
+      "Content-Type": "application/json",
+    }),
+    body: JSON.stringify({
+      settings: readStoredIntegrationSettingsFromLocalStorage(),
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response));
+  }
+
+  const result = (await response.json()) as AgentSessionResponse;
+  const currentSettings = readStoredIntegrationSettingsFromLocalStorage();
+
+  if (result.agentId && result.agentId !== currentSettings.elevenlabsAgentId) {
+    writeStoredIntegrationSettingsToLocalStorage({
+      ...currentSettings,
+      elevenlabsAgentId: result.agentId,
+    });
+  }
+
+  return result;
 }
